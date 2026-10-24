@@ -207,6 +207,9 @@ function onMsg(m){
     walls=m.walls; mapName=m.name||''; predInit=false; predHist.length=0;
   }else if(m.t==='pong'){
     { const r=Math.round(performance.now()-m.ts); latency=latency?Math.round(latency*0.7+r*0.3):r; }
+  }else if(m.t==='busy'){
+    wantReconnect=false; setStatus('Server je teď plný (moc místností). Zkus to za chvíli nebo se přidej do existující místnosti.',true);
+    try{ws.close();}catch{}
   }else if(m.t==='full'){
     setStatus('Aréna je plná (20 hráčů). Zkus to za chvíli nebo jiný kód místnosti.',true);
     wantReconnect=false; try{ws.close();}catch{}
@@ -330,7 +333,10 @@ function showMatch(champId,st){
   document.getElementById('msgSub').textContent='Konečné pořadí · nový zápas začne za chvíli';
   const el=document.getElementById('standings'); el.innerHTML='';
   st.forEach((s,i)=>{ const row=document.createElement('div'); row.className='standrow';
-    row.innerHTML=`<span class="chip" style="background:${s[2]}"></span><span>${i+1}. ${s[1]}</span><span class="score">${s[3]}</span>`;
+    const chip=document.createElement('span'); chip.className='chip'; chip.style.background=String(s[2]);
+    const nm=document.createElement('span'); nm.textContent=(i+1)+'. '+s[1];
+    const sc=document.createElement('span'); sc.className='score'; sc.textContent=String(s[3]);
+    row.append(chip,nm,sc);
     el.appendChild(row); });
   document.getElementById('msgBtns').innerHTML='';
   msgEl.classList.add('solid'); msgEl.classList.remove('hidden');

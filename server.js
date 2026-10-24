@@ -12,6 +12,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
@@ -25,18 +26,39 @@ const MIME = {
   ".css": "text/css; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml",
   ".ico": "image/x-icon", ".json": "application/json", ".webmanifest": "application/manifest+json",
 };
+// Servírujeme jen soubory, které ve složce public existují při startu (whitelist).
+// URL se nikdy nepřevádí na cestu na disku, takže nejde o path traversal ani pád na poškozené URL.
+const STATIC = new Map();
+(function load(dir, prefix) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) load(full, prefix + e.name + "/");
+    else if (e.isFile()) STATIC.set(prefix + e.name, { data: fs.readFileSync(full), type: MIME[path.extname(e.name)] || "application/octet-stream" });
+  }
+})(PUBLIC, "/");
+// CSP: povolený je jen náš vlastní inline skript (podle hashe) – vložené HTML s onerror/onload se nespustí
+const inlineScripts = [...(STATIC.get("/index.html")?.data.toString("utf8") || "").matchAll(/<script>([\s\S]*?)<\/script>/g)]
+  .map((m) => `'sha256-${crypto.createHash("sha256").update(m[1], "utf8").digest("base64")}'`);
+const SECURITY_HEADERS = {
+  "Content-Security-Policy": [
+    "default-src 'self'", `script-src ${inlineScripts.join(" ") || "'none'"}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", "font-src https://fonts.gstatic.com",
+    "img-src 'self' data:", "connect-src 'self' ws: wss:", "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'",
+  ].join("; "),
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "X-Frame-Options": "DENY",
+};
 const server = http.createServer((req, res) => {
-  let url = decodeURIComponent(req.url.split("?")[0]);
+  if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405, { Allow: "GET, HEAD" }); return res.end(); }
+  let url = (req.url || "/").split("?")[0];
   if (url === "/") url = "/index.html";
-  const safe = path.normalize(url).replace(/^(\.\.[\/\\])+/, "");
-  const file = path.join(PUBLIC, safe);
-  if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end("forbidden"); }
-  fs.readFile(file, (err, data) => {
-    if (err) { res.writeHead(404); return res.end("not found"); }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" });
-    res.end(data);
-  });
+  const f = STATIC.get(url);
+  if (!f) { res.writeHead(404, SECURITY_HEADERS); return res.end("not found"); }
+  res.writeHead(200, { ...SECURITY_HEADERS, "Content-Type": f.type, "Cache-Control": "no-cache" });
+  res.end(req.method === "HEAD" ? undefined : f.data);
 });
+server.on("clientError", (err, socket) => { try { socket.end("HTTP/1.1 400 Bad Request\r\n\r\n"); } catch {} });
 
 /* ============================ HERNÍ KONSTANTY ============================ */
 const W = 1000, H = 640, BR = 17, WALL = 22, SPEED = 2.7, MAX = 20, TICK = 1000 / 30;
@@ -161,9 +183,10 @@ function genSpawns() {
 /* ============================ MÍSTNOSTI ============================ */
 const rooms = new Map();
 function getRoom(code) {
-  code = (code || "main").toString().slice(0, 24).replace(/[^\w\-]/g, "") || "main";
+  code = (typeof code === "string" ? code : "").slice(0, 24).replace(/[^\w\-]/g, "") || "main";
   let r = rooms.get(code);
   if (!r) {
+    if (rooms.size >= MAX_ROOMS) return null;
     r = {
       code, players: new Map(), bullets: [], powerups: [],
       phase: "lobby", countdown: 0, cdTimer: 0, overTimer: 0,
@@ -178,15 +201,21 @@ function getRoom(code) {
 
 function freeColorIdx(room, pref) {
   const used = new Set([...room.players.values()].map((p) => p.colorIdx));
-  if (typeof pref === "number" && pref >= 0 && pref < MAX && !used.has(pref)) return pref;
+  if (Number.isInteger(pref) && pref >= 0 && pref < MAX && !used.has(pref)) return pref;
   for (let i = 0; i < MAX; i++) if (!used.has(i)) return i;
   return 0;
 }
 
+function cleanName(name) {
+  return (typeof name === "string" ? name : "")
+    .normalize("NFC")
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff<>&"'`]/g, "")
+    .replace(/\s+/g, " ").trim().slice(0, 16);
+}
 function makePlayer(room, ws, name, prefColor, bot) {
   const ci = freeColorIdx(room, prefColor);
   const id = ++room.nid;
-  name = (name || "").toString().trim().slice(0, 16);
+  name = cleanName(name);
   if (!name) name = bot ? "Bot " + id : "Hráč " + id;
   return {
     id, ws: ws || null, bot: !!bot, name, colorIdx: ci, color: COLORS[ci],
@@ -401,7 +430,36 @@ function standings(room) {
 }
 
 /* ============================ SÍŤ ============================ */
-const wss = new WebSocket.Server({ server });
+/* ---------- ochrana proti zahlcení ---------- */
+const MAX_ROOMS = 25;          // každá místnost se simuluje 30× za s – víc by free instance neutáhla
+const MAX_CONNECTIONS = 150;   // celkem otevřených spojení
+const MAX_PER_IP = 8;          // brzda proti zahlcení z jednoho počítače (velkorysá kvůli sdílené Wi-Fi)
+const MSG_RATE = 90, MSG_BURST = 180; // zpráv za sekundu na spojení (klient posílá max ~65)
+const JOIN_TIMEOUT = 10000;    // kdo se do 10 s nepřipojí do hry, je odpojen
+const perIp = new Map();
+function clientIp(req) {
+  // Render předává IP v X-Forwarded-For; první položka jde podvrhnout, proto je limit na IP jen
+  // doplňková brzda – skutečnou ochranu dávají celkové stropy výše.
+  const xff = (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim();
+  return xff || req.socket.remoteAddress || "?";
+}
+function originOk(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true; // ne-prohlížečový klient – Origin by stejně mohl podvrhnout
+  try { return new URL(origin).host === req.headers.host; } catch { return false; }
+}
+
+const wss = new WebSocket.Server({
+  server,
+  maxPayload: 1024, // naše zprávy mají desítky bajtů; větší zprávu ws odmítne a spojení zavře
+  perMessageDeflate: false,
+  verifyClient: ({ req }, done) => {
+    if (!originOk(req)) return done(false, 403, "Forbidden");
+    if (wss.clients.size >= MAX_CONNECTIONS) return done(false, 503, "Server full");
+    if ((perIp.get(clientIp(req)) || 0) >= MAX_PER_IP) return done(false, 429, "Too many connections");
+    done(true);
+  },
+});
 
 function send(ws, obj) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
 function broadcast(room, obj) {
@@ -414,17 +472,29 @@ function broadcastRoster(room) {
   broadcast(room, { t: "roster", players });
 }
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   ws.isAlive = true;
   ws.player = null; ws.room = null;
+  const ip = clientIp(req);
+  perIp.set(ip, (perIp.get(ip) || 0) + 1);
+  ws.once("close", () => { const n = (perIp.get(ip) || 1) - 1; if (n > 0) perIp.set(ip, n); else perIp.delete(ip); });
+  const joinTimer = setTimeout(() => { if (!ws.player) ws.terminate(); }, JOIN_TIMEOUT);
+  ws.once("close", () => clearTimeout(joinTimer));
+  let tokens = MSG_BURST, last = Date.now();
   ws.on("pong", () => { ws.isAlive = true; });
-  ws.on("message", (raw) => {
+  ws.on("message", (raw, isBinary) => {
+    const now = Date.now();
+    tokens = Math.min(MSG_BURST, tokens + ((now - last) / 1000) * MSG_RATE); last = now;
+    if (--tokens < 0) { ws.terminate(); return; } // zahlcování zprávami
+    if (isBinary) return;
     let m; try { m = JSON.parse(raw); } catch { return; }
+    if (!m || typeof m !== "object") return;
     if (m.t === "join") {
       if (ws.player) return;
       const room = getRoom(m.room);
+      if (!room) { send(ws, { t: "busy" }); return; }
       if (room.players.size >= MAX) { send(ws, { t: "full" }); return; }
-      const p = makePlayer(room, ws, m.name, typeof m.color === "number" ? m.color : undefined, false);
+      const p = makePlayer(room, ws, m.name, m.color, false);
       room.players.set(p.id, p); ws.player = p; ws.room = room;
       if (room.phase === "play" || room.phase === "count") { p.alive = false; p.waiting = true; }
       send(ws, {
@@ -439,7 +509,7 @@ wss.on("connection", (ws) => {
       ws.player.in.ay = clamp(+m.ay || 0, -1, 1);
       ws.player.in.fire = !!m.f;
     } else if (m.t === "ping") {
-      send(ws, { t: "pong", ts: m.ts });
+      if (Number.isFinite(m.ts)) send(ws, { t: "pong", ts: m.ts });
     }
   });
   ws.on("close", () => removePlayer(ws));
