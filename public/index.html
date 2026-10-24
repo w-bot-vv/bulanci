@@ -144,17 +144,33 @@ function connect(){
   };
   ws.onerror=()=>{};
 }
-function sendInput(){
-  if(connected){ const i=readInput(); try{ ws.send(JSON.stringify({t:'in',ax:i.ax,ay:i.ay,f:i.fire})); }catch{} }
+let lastSent='';
+function sendInput(force){
+  if(!connected) return; const i=readInput();
+  const msg=JSON.stringify({t:'in',ax:+i.ax.toFixed(2),ay:+i.ay.toFixed(2),f:i.fire});
+  if(!force&&msg===lastSent) return; lastSent=msg; try{ ws.send(msg); }catch{}
 }
-setInterval(sendInput,45);
-setInterval(()=>{ if(connected){ try{ ws.send(JSON.stringify({t:'ping',ts:performance.now()})); }catch{} } },2000);
+setInterval(()=>sendInput(false),16);   // změna vstupu odejde do ~16 ms
+setInterval(()=>sendInput(true),250);    // a pro jistotu pravidelně i beze změny
+setInterval(()=>{ if(connected){ try{ ws.send(JSON.stringify({t:'ping',ts:performance.now()})); }catch{} } },1000);
 
 /* ---------- příchozí zprávy ---------- */
 let roster=new Map();      // id -> {name,color,wins,kills,bot}
 let snaps=[];              // interpolační buffer
 let phase='lobby', countdown=0, roundWinner=-1;
-const pred={x:W/2,y:H/2}; let predAlive=false, predHp=0, myWeapon=0, myAngle=-Math.PI/2, predInit=false;
+const pred={x:W/2,y:H/2}; const predHist=[]; // {t,x,y} – historie predikce pro reconciliaci
+function predAt(t){ // poloha predikce v čase t (lineárně mezi záznamy)
+  if(!predHist.length) return {x:pred.x,y:pred.y};
+  for(let i=predHist.length-1;i>0;i--){ const a=predHist[i-1],b=predHist[i];
+    if(a.t<=t){ const f=b.t>a.t?Math.min(1,Math.max(0,(t-a.t)/(b.t-a.t))):1; return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f}; } }
+  return {x:predHist[0].x,y:predHist[0].y};
+}
+function shiftPred(dx,dy){
+  const nx=Math.max(BR,Math.min(W-BR,pred.x+dx)), ny=Math.max(BR,Math.min(H-BR,pred.y+dy));
+  if(!hitsWall(nx,pred.y,BR)) pred.x=nx; if(!hitsWall(pred.x,ny,BR)) pred.y=ny;
+  for(const e of predHist){ e.x+=dx; e.y+=dy; }
+}
+let predAlive=false, predHp=0, myWeapon=0, myAngle=-Math.PI/2, predInit=false;
 
 function onMsg(m){
   if(m.t==='welcome'){
@@ -174,7 +190,7 @@ function onMsg(m){
   }else if(m.t==='match'){
     showMatch(m.champ, m.standings);
   }else if(m.t==='pong'){
-    latency=Math.round(performance.now()-m.ts);
+    { const r=Math.round(performance.now()-m.ts); latency=latency?Math.round(latency*0.7+r*0.3):r; }
   }else if(m.t==='full'){
     setStatus('Aréna je plná (20 hráčů). Zkus to za chvíli nebo jiný kód místnosti.',true);
     wantReconnect=false; try{ws.close();}catch{}
@@ -193,9 +209,13 @@ function onState(m){
     myWeapon=me.w; predHp=me.h; predAlive=!!me.al;
     if(!predInit){ pred.x=me.x; pred.y=me.y; predInit=true; }
     else if(me.al){
-      const err=Math.hypot(me.x-pred.x,me.y-pred.y);
-      if(err>70){ pred.x=me.x; pred.y=me.y; } else { pred.x+=(me.x-pred.x)*0.2; pred.y+=(me.y-pred.y)*0.2; }
-    } else { pred.x=me.x; pred.y=me.y; }
+      // server posílá polohu starou ~RTT: porovnáme ji s tím, kde jsme byli tehdy, ne teď
+      const back=(latency||100)+1000/TICKRATE;
+      const h=predAt(performance.now()-back);
+      const ex=me.x-h.x, ey=me.y-h.y, err=Math.hypot(ex,ey);
+      if(err>90){ pred.x=me.x; pred.y=me.y; predHist.length=0; }
+      else if(err>1.5){ const k=0.15; shiftPred(ex*k,ey*k); }
+    } else { pred.x=me.x; pred.y=me.y; predHist.length=0; }
   }
 }
 
@@ -320,6 +340,7 @@ function loop(){
       let ny=pred.y+(i.ay/mag)*step; if(!hitsWall(pred.x,ny,BR)) pred.y=Math.max(BR,Math.min(H-BR,ny));
     }
   }
+  if(predInit){ predHist.push({t:now,x:pred.x,y:pred.y}); while(predHist.length&&now-predHist[0].t>1500) predHist.shift(); }
   render(now);
   requestAnimationFrame(loop);
 }

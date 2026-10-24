@@ -1,8 +1,9 @@
 services:
   - type: web
-    name: bulanci-online
+    name: bulanci-eu
     runtime: node
     plan: free
+    region: frankfurt   # server v Evropě – nižší odezva pro hráče z ČR (region nejde po založení změnit)
     buildCommand: npm install
     startCommand: npm start
     envVars:
