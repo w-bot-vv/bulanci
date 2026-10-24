@@ -55,6 +55,7 @@
   .msg.solid{background:linear-gradient(180deg,rgba(13,16,24,.92),rgba(13,16,24,.97))}
   .msg .big{font-family:"Baloo 2";font-weight:800;font-size:clamp(30px,7vw,60px);margin:0}
   .msg .sub{color:var(--muted);margin-top:6px;font-size:clamp(14px,2.6vw,18px)}
+  .dlg{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:clamp(18px,4vw,30px);box-shadow:var(--shadow);max-width:520px}
   .standings{width:min(520px,90%);margin:16px auto 0;display:flex;flex-direction:column;gap:7px}
   .standrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
   .chip{width:18px;height:18px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.3)}
@@ -92,7 +93,7 @@
       <div class="foot">
         Aréna pojme až 20 hráčů. Míříš tam, kam jdeš; palba střílí ve směru pohybu.<br>
         Pohyb: <kbd>WASD</kbd> nebo šipky · Palba: <kbd>mezerník</kbd> nebo <kbd>Enter</kbd> · Gamepad funguje taky.<br>
-        Na mobilu: levá půlka = pohyb, pravá = palba. Pauza / odchod: <kbd>Esc</kbd>.
+        Na mobilu: levá půlka = pohyb, pravá = palba. Odchod ze hry: <kbd>Esc</kbd>.
       </div>
     </div>
 
@@ -103,6 +104,19 @@
         <p class="sub" id="msgSub"></p>
         <div id="standings" class="standings"></div>
         <div id="msgBtns" style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
+      </div>
+    </div>
+
+    <!-- POTVRZENÍ ODCHODU -->
+    <div id="quitDlg" class="overlay msg hidden" role="dialog" aria-modal="true" aria-labelledby="quitTitle">
+      <div class="dlg">
+        <p class="big" id="quitTitle" style="font-size:clamp(24px,5vw,38px)">Opravdu chceš ukončit hru?</p>
+        <p class="sub">Odejdeš z arény zpět do menu.</p>
+        <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button id="quitNo" class="btn ghost" type="button">Pokračovat ve hře</button>
+          <button id="quitYes" class="btn" type="button">Ukončit hru</button>
+        </div>
+        <p class="sub" style="font-size:13px;margin-top:14px"><kbd>Esc</kbd> = pokračovat</p>
       </div>
     </div>
 
@@ -157,7 +171,7 @@ setInterval(()=>{ if(connected){ try{ ws.send(JSON.stringify({t:'ping',ts:perfor
 /* ---------- příchozí zprávy ---------- */
 let roster=new Map();      // id -> {name,color,wins,kills,bot}
 let snaps=[];              // interpolační buffer
-let phase='lobby', countdown=0, roundWinner=-1;
+let phase='lobby', countdown=0, roundWinner=-1, mapName='';
 const pred={x:W/2,y:H/2}; const predHist=[]; // {t,x,y} – historie predikce pro reconciliaci
 function predAt(t){ // poloha predikce v čase t (lineárně mezi záznamy)
   if(!predHist.length) return {x:pred.x,y:pred.y};
@@ -174,7 +188,7 @@ let predAlive=false, predHp=0, myWeapon=0, myAngle=-Math.PI/2, predInit=false;
 
 function onMsg(m){
   if(m.t==='welcome'){
-    myId=m.id; myColor=m.color; W=m.W; H=m.H; BR=m.BR; SPEED=m.SPEED; walls=m.walls;
+    myId=m.id; myColor=m.color; W=m.W; H=m.H; BR=m.BR; SPEED=m.SPEED; walls=m.walls; mapName=m.mapName||'';
     weaponNames=m.weapons; maxRounds=m.maxRounds;
     cv.width=W; cv.height=H;
     document.getElementById('menu').classList.add('hidden');
@@ -189,6 +203,8 @@ function onMsg(m){
     showMsg(w?w.name+' bere kolo!':'Remíza!', w?('Skóre '+w.wins+' / '+maxRounds):'', false, 1600);
   }else if(m.t==='match'){
     showMatch(m.champ, m.standings);
+  }else if(m.t==='map'){
+    walls=m.walls; mapName=m.name||''; predInit=false; predHist.length=0;
   }else if(m.t==='pong'){
     { const r=Math.round(performance.now()-m.ts); latency=latency?Math.round(latency*0.7+r*0.3):r; }
   }else if(m.t==='full'){
@@ -223,8 +239,9 @@ function onState(m){
 const keys=new Set();
 addEventListener('keydown',e=>{
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(e.code)) e.preventDefault();
+  if(quitOpen()&&(e.code==='Enter'||e.code==='Space')) return; // ať palba omylem nepotvrdí dialog
   keys.add(e.code);
-  if(e.code==='Escape') leaveToMenu();
+  if(e.code==='Escape'){ e.preventDefault(); if(quitOpen()) closeQuit(); else askQuit(); }
 },{passive:false});
 addEventListener('keyup',e=>keys.delete(e.code));
 addEventListener('blur',()=>keys.clear());
@@ -241,6 +258,7 @@ function gpInput(){
   return {ax,ay,fire:(g.buttons[0]&&g.buttons[0].pressed)||(g.buttons[7]&&g.buttons[7].pressed)};
 }
 function readInput(){
+  if(quitOpen()) return {ax:0,ay:0,fire:false};
   let ax=0,ay=0,fire=false;
   // všechna ovládání najednou: klávesnice (WASD i šipky), gamepad, dotyk
   for(const s of [WASD,ARROWS]){
@@ -283,6 +301,15 @@ function showMenu(clearWs){
   if(clearWs){ wantReconnect=false; clearTimeout(reconnectT); if(ws){try{ws.close();}catch{}} connected=false; }
 }
 function leaveToMenu(){ if(document.getElementById('menu').classList.contains('hidden')){ showMenu(true); setStatus(''); } }
+const quitEl=document.getElementById('quitDlg');
+const quitOpen=()=>!quitEl.classList.contains('hidden');
+function askQuit(){ // jen ve hře (v menu není co ukončovat)
+  if(!document.getElementById('menu').classList.contains('hidden')) return;
+  keys.clear(); quitEl.classList.remove('hidden');
+}
+function closeQuit(){ quitEl.classList.add('hidden'); keys.clear(); if(document.activeElement)document.activeElement.blur(); }
+document.getElementById('quitNo').onclick=closeQuit;
+document.getElementById('quitYes').onclick=()=>{ closeQuit(); leaveToMenu(); };
 
 const msgEl=document.getElementById('msg');
 let msgTimer=null;
@@ -421,7 +448,9 @@ function drawPowerup(x,y,kind,now){
 function drawCountdown(){
   ctx.fillStyle='rgba(10,12,18,.45)'; ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='800 120px Baloo 2,sans-serif';
-  ctx.fillText(countdown>0?countdown:'START',W/2,H/2); ctx.textBaseline='alphabetic';
+  ctx.fillText(countdown>0?countdown:'START',W/2,H/2);
+  if(mapName){ ctx.font='700 28px Fredoka,sans-serif'; ctx.fillStyle='#ffd13f'; ctx.fillText('Mapa: '+mapName,W/2,H/2+92); }
+  ctx.textBaseline='alphabetic';
 }
 function drawHUD(){
   // skóre nahoře

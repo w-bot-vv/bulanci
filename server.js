@@ -41,19 +41,68 @@ const server = http.createServer((req, res) => {
 /* ============================ HERNÍ KONSTANTY ============================ */
 const W = 1000, H = 640, BR = 17, WALL = 22, SPEED = 2.7, MAX = 20, TICK = 1000 / 30;
 
-const walls = [
+/* ---------- mapy: každé kolo jiná (5 map) ---------- */
+const BORDER = [
   { x: 0, y: 0, w: W, h: WALL }, { x: 0, y: H - WALL, w: W, h: WALL },
   { x: 0, y: 0, w: WALL, h: H }, { x: W - WALL, y: 0, w: WALL, h: H },
-  { x: 150, y: 120, w: 120, h: 34 }, { x: W - 270, y: 120, w: 120, h: 34 },
-  { x: 150, y: H - 154, w: 120, h: 34 }, { x: W - 270, y: H - 154, w: 120, h: 34 },
-  { x: 150, y: 154, w: 34, h: 120 }, { x: W - 184, y: 154, w: 34, h: 120 },
-  { x: 150, y: H - 274, w: 34, h: 120 }, { x: W - 184, y: H - 274, w: 34, h: 120 },
-  { x: W / 2 - 110, y: H / 2 - 18, w: 220, h: 36 },
-  { x: W / 2 - 18, y: H / 2 - 130, w: 36, h: 90 },
-  { x: W / 2 - 18, y: H / 2 + 40, w: 36, h: 90 },
-  { x: W / 2 - 200, y: 90, w: 34, h: 130 }, { x: W / 2 + 166, y: 90, w: 34, h: 130 },
-  { x: W / 2 - 200, y: H - 220, w: 34, h: 130 }, { x: W / 2 + 166, y: H - 220, w: 34, h: 130 },
 ];
+const MAPS = [
+  { name: "Pevnost", walls: [
+    { x: 150, y: 120, w: 120, h: 34 }, { x: W - 270, y: 120, w: 120, h: 34 },
+    { x: 150, y: H - 154, w: 120, h: 34 }, { x: W - 270, y: H - 154, w: 120, h: 34 },
+    { x: 150, y: 154, w: 34, h: 120 }, { x: W - 184, y: 154, w: 34, h: 120 },
+    { x: 150, y: H - 274, w: 34, h: 120 }, { x: W - 184, y: H - 274, w: 34, h: 120 },
+    { x: W / 2 - 110, y: H / 2 - 18, w: 220, h: 36 },
+    { x: W / 2 - 18, y: H / 2 - 130, w: 36, h: 90 },
+    { x: W / 2 - 18, y: H / 2 + 40, w: 36, h: 90 },
+    { x: W / 2 - 200, y: 90, w: 34, h: 130 }, { x: W / 2 + 166, y: 90, w: 34, h: 130 },
+    { x: W / 2 - 200, y: H - 220, w: 34, h: 130 }, { x: W / 2 + 166, y: H - 220, w: 34, h: 130 },
+  ] },
+  { name: "Sloupy", walls: [200, 400, 600, 800].flatMap((cx) =>
+    [170, 320, 470].map((cy) => ({ x: cx - 28, y: cy - 28, w: 56, h: 56 }))) },
+  { name: "Kříž", walls: [
+    { x: 140, y: 302, w: 280, h: 36 }, { x: 580, y: 302, w: 280, h: 36 },
+    { x: 482, y: 80, w: 36, h: 170 }, { x: 482, y: 390, w: 36, h: 170 },
+    { x: 90, y: 90, w: 120, h: 30 }, { x: 90, y: 120, w: 30, h: 90 },
+    { x: 790, y: 90, w: 120, h: 30 }, { x: 880, y: 120, w: 30, h: 90 },
+    { x: 90, y: 520, w: 120, h: 30 }, { x: 90, y: 430, w: 30, h: 90 },
+    { x: 790, y: 520, w: 120, h: 30 }, { x: 880, y: 430, w: 30, h: 90 },
+  ] },
+  { name: "Bludiště", walls: [
+    { x: 120, y: 110, w: 300, h: 30 }, { x: 580, y: 110, w: 300, h: 30 },
+    { x: 120, y: 500, w: 300, h: 30 }, { x: 580, y: 500, w: 300, h: 30 },
+    { x: 250, y: 220, w: 30, h: 200 }, { x: 720, y: 220, w: 30, h: 200 },
+    { x: 380, y: 300, w: 240, h: 30 },
+    { x: 485, y: 190, w: 30, h: 60 }, { x: 485, y: 380, w: 30, h: 60 },
+    { x: 100, y: 300, w: 80, h: 30 }, { x: 820, y: 300, w: 80, h: 30 },
+  ] },
+  { name: "Aréna", walls: [
+    { x: 420, y: 120, w: 160, h: 30 }, { x: 420, y: 490, w: 160, h: 30 },
+    { x: 270, y: 250, w: 30, h: 140 }, { x: 700, y: 250, w: 30, h: 140 },
+    { x: 320, y: 160, w: 44, h: 44 }, { x: 636, y: 160, w: 44, h: 44 },
+    { x: 320, y: 436, w: 44, h: 44 }, { x: 636, y: 436, w: 44, h: 44 },
+    { x: 90, y: 80, w: 70, h: 70 }, { x: 840, y: 80, w: 70, h: 70 },
+    { x: 90, y: 490, w: 70, h: 70 }, { x: 840, y: 490, w: 70, h: 70 },
+    { x: 480, y: 300, w: 40, h: 40 },
+  ] },
+].map((m) => ({ name: m.name, walls: [...BORDER, ...m.walls] }));
+
+// zdi aktuálně simulované místnosti (simulace je synchronní, místnosti se střídají)
+let walls = MAPS[0].walls;
+function useRoom(room) { walls = room.walls; }
+function nextMap(room) {
+  // projde všech 5 map v náhodném pořadí, pak zamíchá znovu; nikdy dvakrát stejná za sebou
+  if (!room.mapQueue || room.mapQueue.length === 0) {
+    const q = MAPS.map((_, i) => i);
+    for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
+    if (q[0] === room.mapIdx) q.push(q.shift());
+    room.mapQueue = q;
+  }
+  room.mapIdx = room.mapQueue.shift();
+  room.walls = MAPS[room.mapIdx].walls;
+  useRoom(room);
+  room.spawns = genSpawns();
+}
 
 const WEAPONS = {
   pistol:  { name: "Pistole",    dmg: 24, speed: 9.5, cd: 24, spread: 0,    count: 1, r: 4.5, life: 80,  ammo: Infinity },
@@ -92,13 +141,20 @@ function lineClear(x1, y1, x2, y2) {
   return true;
 }
 function genSpawns() {
-  const out = [];
-  for (let gx = 0; gx < 6; gx++)
-    for (let gy = 0; gy < 4; gy++) {
-      const x = 120 + (gx * (W - 240)) / 5;
-      const y = 110 + (gy * (H - 220)) / 3;
-      if (!hitsWall(x, y, BR + 8)) out.push({ x, y });
+  const cand = [];
+  for (let gx = 0; gx < 10; gx++)
+    for (let gy = 0; gy < 7; gy++) {
+      const x = 70 + (gx * (W - 140)) / 9;
+      const y = 70 + (gy * (H - 140)) / 6;
+      if (!hitsWall(x, y, BR + 10)) cand.push({ x, y });
     }
+  // seřadit tak, aby každý další spawn byl co nejdál od už vybraných
+  const out = [cand.splice(Math.floor(Math.random() * cand.length), 1)[0]];
+  while (cand.length) {
+    let bi = 0, bd = -1;
+    cand.forEach((c, i) => { const d = Math.min(...out.map((o) => Math.hypot(o.x - c.x, o.y - c.y))); if (d > bd) { bd = d; bi = i; } });
+    out.push(cand.splice(bi, 1)[0]);
+  }
   return out;
 }
 
@@ -111,8 +167,10 @@ function getRoom(code) {
     r = {
       code, players: new Map(), bullets: [], powerups: [],
       phase: "lobby", countdown: 0, cdTimer: 0, overTimer: 0,
-      powerupTimer: 180, nid: 0, tick: 0, spawns: genSpawns(), roundWinner: -1,
+      powerupTimer: 180, nid: 0, tick: 0, spawns: [], roundWinner: -1,
+      mapIdx: -1, mapQueue: null, walls: MAPS[0].walls,
     };
+    nextMap(r);
     rooms.set(code, r);
   }
   return r;
@@ -166,6 +224,8 @@ function ensureBots(room) {
 /* ============================ SIMULACE ============================ */
 function startRound(room) {
   ensureBots(room);
+  nextMap(room);
+  broadcast(room, { t: "map", walls: room.walls, name: MAPS[room.mapIdx].name, idx: room.mapIdx, count: MAPS.length });
   const list = [...room.players.values()];
   list.forEach((p, i) => {
     const sp = room.spawns[i % room.spawns.length] || { x: W / 2, y: H / 2 };
@@ -249,6 +309,7 @@ function botThink(room, b) {
 }
 
 function updateRoom(room) {
+  useRoom(room);
   room.tick++;
   if (room.phase === "count") {
     if (--room.cdTimer <= 0) { room.countdown--; room.cdTimer = 30; if (room.countdown < 0) room.phase = "play"; }
@@ -367,7 +428,7 @@ wss.on("connection", (ws) => {
       room.players.set(p.id, p); ws.player = p; ws.room = room;
       if (room.phase === "play" || room.phase === "count") { p.alive = false; p.waiting = true; }
       send(ws, {
-        t: "welcome", id: p.id, color: p.color, W, H, BR, SPEED, walls,
+        t: "welcome", id: p.id, color: p.color, W, H, BR, SPEED, walls: room.walls, mapName: MAPS[room.mapIdx].name,
         weapons: Object.fromEntries(Object.entries(WEAPONS).map(([k, v]) => [k, v.name])),
         maxRounds: ROUNDS_TO_WIN, room: room.code,
       });
