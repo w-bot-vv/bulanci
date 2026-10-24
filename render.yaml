@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: bulanci-online
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ROUNDS
+        value: "5"
+      - key: BOTS
+        value: "4"

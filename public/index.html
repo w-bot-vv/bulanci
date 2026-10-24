@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Bulánci Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10131b;--panel:#1b2030;--panel-2:#232a3d;--line:#323b54;--ink:#eef2fb;
+    --muted:#97a1bb;--primary:#ffd13f;--primary-ink:#241c00;--coral:#ff5d54;--radius:16px;
+    --shadow:0 14px 40px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%, #20283c 0%, var(--bg) 60%);
+    color:var(--ink);font-family:"Fredoka",system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex;align-items:center;justify-content:center;min-height:100%;padding:18px;overscroll-behavior:none;
+  }
+  .wrap{width:min(1000px,100%)}
+  .stage{position:relative;width:100%;aspect-ratio:1000/640;border-radius:var(--radius);overflow:hidden;
+    box-shadow:var(--shadow);background:#0c0f16;border:1px solid var(--line);
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,rgba(13,16,24,.92),rgba(13,16,24,.97));
+    padding:clamp(16px,4vw,40px);overflow:auto;gap:16px}
+  .hidden{display:none!important}
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{width:54px;height:54px;flex:0 0 auto}
+  h1{font-family:"Baloo 2";font-weight:800;margin:0;font-size:clamp(26px,5.4vw,46px);letter-spacing:.5px;line-height:1}
+  h1 small{display:block;font-family:"Fredoka";font-weight:500;font-size:clamp(12px,2.4vw,15px);color:var(--muted);margin-top:6px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;max-width:460px}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:13px;color:var(--muted);font-weight:600}
+  .field input,.field select{background:#161b29;color:var(--ink);border:1px solid var(--line);
+    border-radius:10px;padding:12px;font-family:inherit;font-size:16px}
+  .btn{font-family:"Baloo 2";font-weight:800;cursor:pointer;border:none;border-radius:12px;padding:14px 22px;
+    font-size:18px;background:var(--primary);color:var(--primary-ink);box-shadow:0 6px 0 #b8902a}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b8902a}
+  .btn.ghost{background:var(--panel-2);color:var(--ink);box-shadow:0 6px 0 #11141f}
+  .btn.ghost:active{box-shadow:0 2px 0 #11141f}
+  .btn:disabled{opacity:.55;cursor:default;transform:none}
+  .status{font-size:14px;color:var(--muted);min-height:20px;margin-top:10px}
+  .status.err{color:var(--coral)}
+  .foot{font-size:12px;color:var(--muted);line-height:1.5}
+  kbd{background:#0d1119;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;font-family:inherit;font-size:12px}
+  .msg{align-items:center;justify-content:center;text-align:center;background:rgba(10,12,18,.55)}
+  .msg.solid{background:linear-gradient(180deg,rgba(13,16,24,.92),rgba(13,16,24,.97))}
+  .msg .big{font-family:"Baloo 2";font-weight:800;font-size:clamp(30px,7vw,60px);margin:0}
+  .msg .sub{color:var(--muted);margin-top:6px;font-size:clamp(14px,2.6vw,18px)}
+  .standings{width:min(520px,90%);margin:16px auto 0;display:flex;flex-direction:column;gap:7px}
+  .standrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .chip{width:18px;height:18px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.3)}
+  .standrow .score{margin-left:auto;font-family:"Baloo 2";font-weight:800;font-size:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <canvas id="game" width="1000" height="640"></canvas>
+
+    <!-- MENU -->
+    <div id="menu" class="overlay">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="34" r="24" fill="#ff5d54"/>
+          <circle cx="24" cy="30" r="5.5" fill="#fff"/><circle cx="40" cy="30" r="5.5" fill="#fff"/>
+          <circle cx="25.5" cy="31" r="2.6" fill="#14131b"/><circle cx="41.5" cy="31" r="2.6" fill="#14131b"/>
+          <rect x="30" y="6" width="20" height="8" rx="3" fill="#cfd6e6" transform="rotate(-12 30 10)"/>
+        </svg>
+        <h1>BULÁNCI ONLINE<small>Připoj se do arény · poslední přeživší bere kolo</small></h1>
+      </div>
+      <div class="card">
+        <div class="field">
+          <label for="name">Tvoje jméno</label>
+          <input id="name" maxlength="16" placeholder="Hráč" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="ctrl">Ovládání</label>
+          <select id="ctrl">
+            <option value="auto">Automaticky (dotyk / WASD)</option>
+            <option value="wasd">Klávesnice WASD + mezerník</option>
+            <option value="arrows">Šipky + Enter</option>
+            <option value="gp">Gamepad</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="room">Kód místnosti (nepovinné – všichni stejný = spolu)</label>
+          <input id="room" maxlength="24" placeholder="main" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="server">Adresa serveru (nech prázdné, pokud běžíš přímo ze serveru)</label>
+          <input id="server" placeholder="wss://tvuj-server.onrender.com" autocomplete="off">
+        </div>
+        <button id="joinBtn" class="btn">Připojit se</button>
+        <div id="status" class="status"></div>
+      </div>
+      <div class="foot">
+        Aréna pojme až 20 hráčů. Míříš tam, kam jdeš; palba střílí ve směru pohybu.<br>
+        Na mobilu: levá půlka = pohyb, pravá = palba. Pauza / odchod: <kbd>Esc</kbd>.
+      </div>
+    </div>
+
+    <!-- MESSAGE -->
+    <div id="msg" class="overlay msg hidden">
+      <div>
+        <p class="big" id="msgBig"></p>
+        <p class="sub" id="msgSub"></p>
+        <div id="standings" class="standings"></div>
+        <div id="msgBtns" style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
+      </div>
+    </div>
+
+    <!-- ROTATE -->
+    <div id="rotate" class="overlay msg solid hidden">
+      <div><p class="big">↻</p><p class="sub">Otoč telefon na šířku.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+let W=1000,H=640,BR=17,SPEED=2.7;
+const IS_TOUCH=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||('ontouchstart' in window);
+const TICKRATE=30, INTERP=100;
+
+/* ---------- síť ---------- */
+let ws=null, myId=null, myColor='#fff', walls=[], weaponNames=[], maxRounds=5;
+let connected=false, joinInfo=null, wantReconnect=false, reconnectT=null;
+let latency=0;
+const statusEl=document.getElementById('status');
+
+function serverURL(){
+  const custom=document.getElementById('server').value.trim();
+  if(custom){ return custom.replace(/^http/,'ws'); }
+  const proto=location.protocol==='https:'?'wss':'ws';
+  return proto+'://'+location.host;
+}
+function setStatus(txt,err){ statusEl.textContent=txt; statusEl.classList.toggle('err',!!err); }
+
+function connect(){
+  let url; try{ url=serverURL(); }catch(e){ setStatus('Neplatná adresa serveru.',true); return; }
+  setStatus('Připojuji… (pokud server spal, první start může trvat ~30 s)');
+  try{ ws=new WebSocket(url); }catch(e){ setStatus('Nelze se připojit: '+e.message,true); return; }
+  ws.onopen=()=>{ connected=true; ws.send(JSON.stringify(Object.assign({t:'join'},joinInfo))); };
+  ws.onmessage=(ev)=>{ let m; try{m=JSON.parse(ev.data);}catch{return;} onMsg(m); };
+  ws.onclose=()=>{
+    connected=false;
+    if(wantReconnect){ setStatus('Spojení přerušeno – zkouším znovu…',true); showMenu(false); clearTimeout(reconnectT); reconnectT=setTimeout(connect,1500); }
+  };
+  ws.onerror=()=>{};
+}
+function sendInput(){
+  if(connected){ const i=readInput(); try{ ws.send(JSON.stringify({t:'in',ax:i.ax,ay:i.ay,f:i.fire})); }catch{} }
+}
+setInterval(sendInput,45);
+setInterval(()=>{ if(connected){ try{ ws.send(JSON.stringify({t:'ping',ts:performance.now()})); }catch{} } },2000);
+
+/* ---------- příchozí zprávy ---------- */
+let roster=new Map();      // id -> {name,color,wins,kills,bot}
+let snaps=[];              // interpolační buffer
+let phase='lobby', countdown=0, roundWinner=-1;
+const pred={x:W/2,y:H/2}; let predAlive=false, predHp=0, myWeapon=0, myAngle=-Math.PI/2, predInit=false;
+
+function onMsg(m){
+  if(m.t==='welcome'){
+    myId=m.id; myColor=m.color; W=m.W; H=m.H; BR=m.BR; SPEED=m.SPEED; walls=m.walls;
+    weaponNames=m.weapons; maxRounds=m.maxRounds;
+    cv.width=W; cv.height=H;
+    document.getElementById('menu').classList.add('hidden');
+    setStatus(''); snaps=[]; predInit=false;
+  }else if(m.t==='roster'){
+    roster=new Map(); for(const r of m.players) roster.set(r[0],{name:r[1],color:r[2],wins:r[3],kills:r[4],bot:r[5]});
+  }else if(m.t==='s'){
+    onState(m);
+  }else if(m.t==='round'){
+    roundWinner=m.winner;
+    const w=roster.get(m.winner);
+    showMsg(w?w.name+' bere kolo!':'Remíza!', w?('Skóre '+w.wins+' / '+maxRounds):'', false, 1600);
+  }else if(m.t==='match'){
+    showMatch(m.champ, m.standings);
+  }else if(m.t==='pong'){
+    latency=Math.round(performance.now()-m.ts);
+  }else if(m.t==='full'){
+    setStatus('Aréna je plná (20 hráčů). Zkus to za chvíli nebo jiný kód místnosti.',true);
+    wantReconnect=false; try{ws.close();}catch{}
+  }
+}
+function onState(m){
+  const players={};
+  for(const t of m.ps) players[t[0]]={x:t[1],y:t[2],a:t[3],h:t[4],w:t[5],al:t[6]};
+  snaps.push({at:performance.now(),players,bullets:m.bs||[],pu:m.pu||[]});
+  if(snaps.length>40) snaps.shift();
+  phase=m.ph; countdown=m.cd;
+  if(phase==='play'||phase==='count') hideMsgIfTransient();
+  // reconcile mé postavy
+  const me=players[myId];
+  if(me){
+    myWeapon=me.w; predHp=me.h; predAlive=!!me.al;
+    if(!predInit){ pred.x=me.x; pred.y=me.y; predInit=true; }
+    else if(me.al){
+      const err=Math.hypot(me.x-pred.x,me.y-pred.y);
+      if(err>70){ pred.x=me.x; pred.y=me.y; } else { pred.x+=(me.x-pred.x)*0.2; pred.y+=(me.y-pred.y)*0.2; }
+    } else { pred.x=me.x; pred.y=me.y; }
+  }
+}
+
+/* ---------- vstup ---------- */
+const keys=new Set();
+addEventListener('keydown',e=>{
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(e.code)) e.preventDefault();
+  keys.add(e.code);
+  if(e.code==='Escape') leaveToMenu();
+},{passive:false});
+addEventListener('keyup',e=>keys.delete(e.code));
+addEventListener('blur',()=>keys.clear());
+
+const WASD={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD',fire:'Space'};
+const ARROWS={up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',fire:'Enter'};
+let scheme='wasd';
+function gpInput(){
+  const pads=navigator.getGamepads?navigator.getGamepads():[]; const g=pads[0]; if(!g) return null;
+  let ax=g.axes[0]||0, ay=g.axes[1]||0;
+  if(g.buttons[14]&&g.buttons[14].pressed)ax=-1; if(g.buttons[15]&&g.buttons[15].pressed)ax=1;
+  if(g.buttons[12]&&g.buttons[12].pressed)ay=-1; if(g.buttons[13]&&g.buttons[13].pressed)ay=1;
+  if(Math.abs(ax)<0.25)ax=0; if(Math.abs(ay)<0.25)ay=0;
+  return {ax,ay,fire:(g.buttons[0]&&g.buttons[0].pressed)||(g.buttons[7]&&g.buttons[7].pressed)};
+}
+function readInput(){
+  let ax=0,ay=0,fire=false;
+  if(scheme==='touch'){ ax=touch.ax; ay=touch.ay; fire=touch.fireIds.size>0; }
+  else if(scheme==='gp'){ const g=gpInput(); if(g){ax=g.ax;ay=g.ay;fire=g.fire;} }
+  else { const s=scheme==='arrows'?ARROWS:WASD;
+    if(keys.has(s.left))ax-=1; if(keys.has(s.right))ax+=1; if(keys.has(s.up))ay-=1; if(keys.has(s.down))ay+=1;
+    fire=keys.has(s.fire); }
+  const mag=Math.hypot(ax,ay); if(mag>1){ax/=mag;ay/=mag;}
+  return {ax,ay,fire};
+}
+
+/* dotyk */
+const touch={joyId:null,ox:0,oy:0,kx:0,ky:0,ax:0,ay:0,fireIds:new Set()};
+const JOY_R=82;
+function toLogical(t){ const r=cv.getBoundingClientRect(); return {x:(t.clientX-r.left)/r.width*W,y:(t.clientY-r.top)/r.height*H}; }
+cv.addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toLogical(t);
+  if(p.x<W*0.46){ if(touch.joyId===null){touch.joyId=t.identifier;touch.ox=p.x;touch.oy=p.y;touch.kx=p.x;touch.ky=p.y;touch.ax=0;touch.ay=0;} }
+  else touch.fireIds.add(t.identifier); } },{passive:false});
+cv.addEventListener('touchmove',e=>{ e.preventDefault(); for(const t of e.changedTouches){ if(t.identifier===touch.joyId){
+  const p=toLogical(t); let dx=p.x-touch.ox,dy=p.y-touch.oy; const m=Math.hypot(dx,dy);
+  if(m>JOY_R){dx=dx/m*JOY_R;dy=dy/m*JOY_R;} touch.kx=touch.ox+dx;touch.ky=touch.oy+dy;
+  const nx=dx/JOY_R,ny=dy/JOY_R,mag=Math.hypot(nx,ny); if(mag<0.22){touch.ax=0;touch.ay=0;}else{touch.ax=nx;touch.ay=ny;} } } },{passive:false});
+function touchEnd(e){ e.preventDefault(); for(const t of e.changedTouches){ if(t.identifier===touch.joyId){touch.joyId=null;touch.ax=0;touch.ay=0;} touch.fireIds.delete(t.identifier);} }
+cv.addEventListener('touchend',touchEnd,{passive:false});
+cv.addEventListener('touchcancel',touchEnd,{passive:false});
+
+/* ---------- menu / přechody ---------- */
+document.getElementById('joinBtn').onclick=()=>{
+  const chosen=document.getElementById('ctrl').value;
+  scheme = chosen==='auto' ? (IS_TOUCH?'touch':'wasd') : chosen;
+  const name=document.getElementById('name').value.trim();
+  const room=document.getElementById('room').value.trim();
+  joinInfo={name,room}; wantReconnect=true;
+  if(document.activeElement)document.activeElement.blur();
+  connect();
+};
+function showMenu(clearWs){
+  document.getElementById('menu').classList.remove('hidden');
+  hideMsg();
+  if(clearWs){ wantReconnect=false; clearTimeout(reconnectT); if(ws){try{ws.close();}catch{}} connected=false; }
+}
+function leaveToMenu(){ if(document.getElementById('menu').classList.contains('hidden')){ showMenu(true); setStatus(''); } }
+
+const msgEl=document.getElementById('msg');
+let msgTimer=null;
+function showMsg(big,sub,solid,autoHide){
+  document.getElementById('msgBig').textContent=big;
+  document.getElementById('msgSub').textContent=sub;
+  document.getElementById('standings').innerHTML='';
+  document.getElementById('msgBtns').innerHTML='';
+  msgEl.classList.toggle('solid',!!solid); msgEl.classList.remove('hidden');
+  clearTimeout(msgTimer);
+  if(autoHide) msgTimer=setTimeout(()=>msgEl.classList.add('hidden'),autoHide);
+}
+function hideMsg(){ msgEl.classList.add('hidden'); }
+function hideMsgIfTransient(){ /* countdown/hra kreslí přímo na canvas; overlay skryjeme */ if(!msgEl.classList.contains('solid')) { /* necháme případný round popisek dojet timerem */ } }
+function showMatch(champId,st){
+  const c=roster.get(champId);
+  document.getElementById('msgBig').textContent='🏆 '+(c?c.name:'Vítěz')+' vyhrál!';
+  document.getElementById('msgSub').textContent='Konečné pořadí · nový zápas začne za chvíli';
+  const el=document.getElementById('standings'); el.innerHTML='';
+  st.forEach((s,i)=>{ const row=document.createElement('div'); row.className='standrow';
+    row.innerHTML=`<span class="chip" style="background:${s[2]}"></span><span>${i+1}. ${s[1]}</span><span class="score">${s[3]}</span>`;
+    el.appendChild(row); });
+  document.getElementById('msgBtns').innerHTML='';
+  msgEl.classList.add('solid'); msgEl.classList.remove('hidden');
+  clearTimeout(msgTimer); msgTimer=setTimeout(()=>msgEl.classList.add('hidden'),8000);
+}
+
+/* orientace na mobilu */
+let rotateBlock=false; const rotateEl=document.getElementById('rotate');
+function checkOrient(){
+  const portrait=window.innerHeight>window.innerWidth;
+  const inGame=document.getElementById('menu').classList.contains('hidden');
+  rotateBlock=IS_TOUCH&&portrait&&inGame;
+  rotateEl.classList.toggle('hidden',!rotateBlock);
+}
+addEventListener('resize',checkOrient);
+addEventListener('orientationchange',()=>setTimeout(checkOrient,200));
+
+/* ---------- render ---------- */
+const lerp=(a,b,f)=>a+(b-a)*f;
+function lerpAngle(a,b,f){ let d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI; return a+d*f; }
+function colorOf(id){ const r=roster.get(id); return r?r.color:'#bbb'; }
+function nameOf(id){ const r=roster.get(id); return r?r.name:''; }
+
+let lastT=performance.now();
+function loop(){
+  const now=performance.now(), dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
+  checkOrient();
+  // predikce mé postavy
+  if(predInit && predAlive && !rotateBlock){
+    const i=readInput(); const mag=Math.hypot(i.ax,i.ay);
+    if(mag>0.05){ myAngle=Math.atan2(i.ay,i.ax);
+      const step=SPEED*TICKRATE*dt;
+      let nx=pred.x+(i.ax/mag)*step; if(!hitsWall(nx,pred.y,BR)) pred.x=Math.max(BR,Math.min(W-BR,nx));
+      let ny=pred.y+(i.ay/mag)*step; if(!hitsWall(pred.x,ny,BR)) pred.y=Math.max(BR,Math.min(H-BR,ny));
+    }
+  }
+  render(now);
+  requestAnimationFrame(loop);
+}
+function hitsWall(x,y,r){ for(const w of walls) if(x+r>w.x&&x-r<w.x+w.w&&y+r>w.y&&y-r<w.y+w.h) return true; return false; }
+
+function render(now){
+  // podlaha
+  ctx.fillStyle='#161c2b'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  const rt=now-INTERP;
+  let a=null,b=null;
+  for(let i=snaps.length-1;i>=0;i--){ if(snaps[i].at<=rt){ a=snaps[i]; b=snaps[i+1]||snaps[i]; break; } }
+  if(!a && snaps.length){ a=snaps[0]; b=snaps[0]; }
+
+  // powerupy + střely z nejbližšího snapshotu
+  const src=a||{pu:[],bullets:[]};
+  for(const pu of src.pu) drawPowerup(pu[0],pu[1],pu[2],now);
+  for(const w of walls) drawWall(w);
+  if(a){ const dtk=(rt-a.at)/(1000/TICKRATE);
+    for(const bl of a.bullets){ ctx.fillStyle=bl[5]; ctx.beginPath(); ctx.arc(bl[0]+bl[2]*dtk,bl[1]+bl[3]*dtk,bl[4],0,6.28); ctx.fill(); }
+  }
+
+  // hráči
+  if(a){
+    const span=(b.at-a.at)||1, f=Math.max(0,Math.min(1,(rt-a.at)/span));
+    for(const idStr in b.players){
+      const id=+idStr, pb=b.players[id], pa=a.players[id]||pb;
+      let x,y,ang,al=pb.al;
+      if(id===myId){ x=pred.x; y=pred.y; ang=myAngle; al=predAlive?1:0; }
+      else { x=lerp(pa.x,pb.x,f); y=lerp(pa.y,pb.y,f); ang=lerpAngle(pa.a,pb.a,f); }
+      if(!al) continue;
+      drawBulanek(x,y,ang,colorOf(id),pb.h,nameOf(id),id===myId);
+    }
+  }
+
+  drawTouchControls();
+  drawHUD();
+  if(phase==='count') drawCountdown();
+  if(!connected && document.getElementById('menu').classList.contains('hidden')){
+    ctx.fillStyle='rgba(10,12,18,.5)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff'; ctx.font='700 26px Baloo 2,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Spojení přerušeno – zkouším znovu…',W/2,H/2);
+  }
+}
+function drawWall(w){ ctx.fillStyle='#2a3450'; ctx.fillRect(w.x,w.y,w.w,w.h);
+  ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(w.x,w.y,w.w,4);
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(w.x,w.y+w.h-4,w.w,4); }
+function drawBulanek(x,y,angle,color,hp,name,isMe){
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,BR-3,BR*.9,BR*.45,0,0,6.28); ctx.fill();
+  ctx.save(); ctx.rotate(angle); ctx.fillStyle='#cfd6e6'; ctx.fillRect(BR-3,-3.5,14,7); ctx.restore();
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(0,0,BR,0,6.28); ctx.fill();
+  ctx.strokeStyle=isMe?'#fff':'rgba(0,0,0,.25)'; ctx.lineWidth=isMe?3:2.5; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(-3,-4,BR*.55,0,6.28); ctx.fill();
+  const ex=Math.cos(angle),ey=Math.sin(angle),px=-ey,py=ex;
+  for(const s of [-1,1]){ const ox=ex*4+px*s*6, oy=ey*4+py*s*6;
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ox,oy,4.2,0,6.28); ctx.fill();
+    ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(ox+ex*1.6,oy+ey*1.6,2.1,0,6.28); ctx.fill(); }
+  ctx.restore();
+  const bw=34; ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-bw/2,y-BR-12,bw,5);
+  ctx.fillStyle=hp>50?'#51d167':hp>25?'#ffd23f':'#ff5147'; ctx.fillRect(x-bw/2,y-BR-12,bw*Math.max(0,Math.min(1,hp/100)),5);
+  if(name){ ctx.fillStyle='rgba(255,255,255,.85)'; ctx.font='600 11px Fredoka,sans-serif'; ctx.textAlign='center';
+    ctx.fillText(name,x,y-BR-18); }
+}
+function drawPowerup(x,y,kind,now){
+  ctx.save(); ctx.translate(x,y); const pulse=1+Math.sin(now/220)*.06; ctx.scale(pulse,pulse);
+  ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(0,3,14,0,6.28); ctx.fill();
+  let col='#fff',label='?'; if(kind==='health'){col='#51d167';label='+';}else if(kind==='mg'){col='#4a8dff';label='MG';}
+  else if(kind==='shotgun'){col='#ff9a3c';label='SG';}else if(kind==='rocket'){col='#ff5147';label='R';}
+  ctx.fillStyle='#11131c'; ctx.beginPath(); ctx.arc(0,0,14,0,6.28); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke();
+  ctx.fillStyle=col; ctx.font='700 12px Fredoka,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label,0,1);
+  ctx.restore(); ctx.textBaseline='alphabetic';
+}
+function drawCountdown(){
+  ctx.fillStyle='rgba(10,12,18,.45)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='800 120px Baloo 2,sans-serif';
+  ctx.fillText(countdown>0?countdown:'START',W/2,H/2); ctx.textBaseline='alphabetic';
+}
+function drawHUD(){
+  // skóre nahoře
+  const arr=[...roster.values()].sort((a,b)=>b.wins-a.wins).slice(0,8);
+  let x=10; ctx.textAlign='left'; ctx.textBaseline='middle';
+  for(const p of arr){
+    ctx.fillStyle='rgba(13,16,24,.78)'; rr(x,8,120,30,8); ctx.fill();
+    ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(x+15,23,7,0,6.28); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='700 12px Baloo 2,sans-serif';
+    ctx.fillText((p.name.length>9?p.name.slice(0,9):p.name)+' ×'+p.wins,x+27,23);
+    x+=126; if(x>W-130) break;
+  }
+  ctx.textBaseline='alphabetic';
+  // spektátor / latence
+  if(predInit && !predAlive && (phase==='play'||phase==='count')){
+    ctx.fillStyle='rgba(0,0,0,.5)'; rr(W/2-90,H-42,180,30,8); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='600 14px Fredoka,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Čekáš na další kolo…',W/2,H-22);
+  }
+  ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='600 11px Fredoka,sans-serif'; ctx.textAlign='right';
+  ctx.fillText((latency?latency+' ms':'')+'  Esc = odchod',W-10,H-10); ctx.textAlign='left';
+}
+function drawTouchControls(){
+  if(scheme!=='touch') return; if(!(phase==='play'||phase==='count')) return;
+  const active=touch.joyId!==null; const bx=active?touch.ox:130,by=active?touch.oy:H-130,kx=active?touch.kx:bx,ky=active?touch.ky:by;
+  ctx.globalAlpha=.16; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bx,by,JOY_R,0,6.28); ctx.fill();
+  ctx.globalAlpha=active?.6:.4; ctx.beginPath(); ctx.arc(kx,ky,36,0,6.28); ctx.fill();
+  const fbx=W-120,fby=H-120,pr=touch.fireIds.size>0;
+  ctx.globalAlpha=pr?.9:.4; ctx.fillStyle=pr?'#ff5147':'#fff'; ctx.beginPath(); ctx.arc(fbx,fby,66,0,6.28); ctx.fill();
+  ctx.globalAlpha=1; ctx.fillStyle=pr?'#fff':'#14131b'; ctx.font='800 24px Baloo 2,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('PAL',fbx,fby); ctx.textBaseline='alphabetic'; ctx.globalAlpha=1;
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+// předvyplň jméno
+document.getElementById('name').value = 'Hráč'+Math.floor(Math.random()*900+100);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
