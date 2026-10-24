@@ -83,27 +83,15 @@
           <input id="name" maxlength="16" placeholder="Hráč" autocomplete="off">
         </div>
         <div class="field">
-          <label for="ctrl">Ovládání</label>
-          <select id="ctrl">
-            <option value="auto">Automaticky (dotyk / WASD)</option>
-            <option value="wasd">Klávesnice WASD + mezerník</option>
-            <option value="arrows">Šipky + Enter</option>
-            <option value="gp">Gamepad</option>
-          </select>
-        </div>
-        <div class="field">
           <label for="room">Kód místnosti (nepovinné – všichni stejný = spolu)</label>
           <input id="room" maxlength="24" placeholder="main" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="server">Adresa serveru (nech prázdné, pokud běžíš přímo ze serveru)</label>
-          <input id="server" placeholder="wss://tvuj-server.onrender.com" autocomplete="off">
         </div>
         <button id="joinBtn" class="btn">Připojit se</button>
         <div id="status" class="status"></div>
       </div>
       <div class="foot">
         Aréna pojme až 20 hráčů. Míříš tam, kam jdeš; palba střílí ve směru pohybu.<br>
+        Pohyb: <kbd>WASD</kbd> nebo šipky · Palba: <kbd>mezerník</kbd> nebo <kbd>Enter</kbd> · Gamepad funguje taky.<br>
         Na mobilu: levá půlka = pohyb, pravá = palba. Pauza / odchod: <kbd>Esc</kbd>.
       </div>
     </div>
@@ -139,8 +127,6 @@ let latency=0;
 const statusEl=document.getElementById('status');
 
 function serverURL(){
-  const custom=document.getElementById('server').value.trim();
-  if(custom){ return custom.replace(/^http/,'ws'); }
   const proto=location.protocol==='https:'?'wss':'ws';
   return proto+'://'+location.host;
 }
@@ -225,7 +211,7 @@ addEventListener('blur',()=>keys.clear());
 
 const WASD={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD',fire:'Space'};
 const ARROWS={up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',fire:'Enter'};
-let scheme='wasd';
+let usedTouch=IS_TOUCH; // dotykové ovládání se ukáže na dotykových zařízeních nebo po prvním dotyku
 function gpInput(){
   const pads=navigator.getGamepads?navigator.getGamepads():[]; const g=pads[0]; if(!g) return null;
   let ax=g.axes[0]||0, ay=g.axes[1]||0;
@@ -236,11 +222,14 @@ function gpInput(){
 }
 function readInput(){
   let ax=0,ay=0,fire=false;
-  if(scheme==='touch'){ ax=touch.ax; ay=touch.ay; fire=touch.fireIds.size>0; }
-  else if(scheme==='gp'){ const g=gpInput(); if(g){ax=g.ax;ay=g.ay;fire=g.fire;} }
-  else { const s=scheme==='arrows'?ARROWS:WASD;
+  // všechna ovládání najednou: klávesnice (WASD i šipky), gamepad, dotyk
+  for(const s of [WASD,ARROWS]){
     if(keys.has(s.left))ax-=1; if(keys.has(s.right))ax+=1; if(keys.has(s.up))ay-=1; if(keys.has(s.down))ay+=1;
-    fire=keys.has(s.fire); }
+    if(keys.has(s.fire))fire=true; }
+  ax=Math.max(-1,Math.min(1,ax)); ay=Math.max(-1,Math.min(1,ay));
+  const g=gpInput(); if(g){ if(g.ax||g.ay){ax=g.ax;ay=g.ay;} if(g.fire)fire=true; }
+  if(touch.joyId!==null&&(touch.ax||touch.ay)){ax=touch.ax;ay=touch.ay;}
+  if(touch.fireIds.size>0)fire=true;
   const mag=Math.hypot(ax,ay); if(mag>1){ax/=mag;ay/=mag;}
   return {ax,ay,fire};
 }
@@ -249,7 +238,7 @@ function readInput(){
 const touch={joyId:null,ox:0,oy:0,kx:0,ky:0,ax:0,ay:0,fireIds:new Set()};
 const JOY_R=82;
 function toLogical(t){ const r=cv.getBoundingClientRect(); return {x:(t.clientX-r.left)/r.width*W,y:(t.clientY-r.top)/r.height*H}; }
-cv.addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toLogical(t);
+cv.addEventListener('touchstart',e=>{ e.preventDefault(); usedTouch=true; for(const t of e.changedTouches){ const p=toLogical(t);
   if(p.x<W*0.46){ if(touch.joyId===null){touch.joyId=t.identifier;touch.ox=p.x;touch.oy=p.y;touch.kx=p.x;touch.ky=p.y;touch.ax=0;touch.ay=0;} }
   else touch.fireIds.add(t.identifier); } },{passive:false});
 cv.addEventListener('touchmove',e=>{ e.preventDefault(); for(const t of e.changedTouches){ if(t.identifier===touch.joyId){
@@ -262,8 +251,6 @@ cv.addEventListener('touchcancel',touchEnd,{passive:false});
 
 /* ---------- menu / přechody ---------- */
 document.getElementById('joinBtn').onclick=()=>{
-  const chosen=document.getElementById('ctrl').value;
-  scheme = chosen==='auto' ? (IS_TOUCH?'touch':'wasd') : chosen;
   const name=document.getElementById('name').value.trim();
   const room=document.getElementById('room').value.trim();
   joinInfo={name,room}; wantReconnect=true;
@@ -437,7 +424,7 @@ function drawHUD(){
   ctx.fillText((latency?latency+' ms':'')+'  Esc = odchod',W-10,H-10); ctx.textAlign='left';
 }
 function drawTouchControls(){
-  if(scheme!=='touch') return; if(!(phase==='play'||phase==='count')) return;
+  if(!usedTouch) return; if(!(phase==='play'||phase==='count')) return;
   const active=touch.joyId!==null; const bx=active?touch.ox:130,by=active?touch.oy:H-130,kx=active?touch.kx:bx,ky=active?touch.ky:by;
   ctx.globalAlpha=.16; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bx,by,JOY_R,0,6.28); ctx.fill();
   ctx.globalAlpha=active?.6:.4; ctx.beginPath(); ctx.arc(kx,ky,36,0,6.28); ctx.fill();
