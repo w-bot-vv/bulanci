@@ -9,5 +9,3 @@ services:
     envVars:
       - key: ROUNDS
         value: "5"
-      - key: BOTS
-        value: "4"

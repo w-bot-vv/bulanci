@@ -16,8 +16,9 @@ const crypto = require("crypto");
 const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
-const ROUNDS_TO_WIN = parseInt(process.env.ROUNDS || "5", 10);
-const BOTS_FILL = parseInt(process.env.BOTS || "4", 10);
+const ROUNDS_TO_WIN = parseInt(process.env.ROUNDS || "5", 10); // výchozí počet výher do konce zápasu (hostitel může změnit)
+const ROUND_CHOICES = [3, 5, 7, 10];
+const ROUND_TICKS = parseInt(process.env.ROUND_SECONDS || "90", 10) * 30; // pojistka: kolo nejdéle 90 s, pak remíza
 const PUBLIC = path.join(__dirname, "public");
 
 /* ---------- statické soubory ---------- */
@@ -131,9 +132,15 @@ const WEAPONS = {
   mg:      { name: "Samopal",    dmg: 11, speed: 12,  cd: 6,  spread: 0.10, count: 1, r: 4,   life: 70,  ammo: 60 },
   shotgun: { name: "Brokovnice", dmg: 13, speed: 9.5, cd: 40, spread: 0.30, count: 6, r: 4,   life: 50,  ammo: 10 },
   rocket:  { name: "Raketomet",  dmg: 55, speed: 6.2, cd: 64, spread: 0,    count: 1, r: 7.5, life: 120, ammo: 5, explode: true, radius: 78, splash: 42 },
+  mines:   { name: "Miny",       cd: 20, ammo: 3, mine: true },
 };
-const WEAPON_IDX = { pistol: 0, mg: 1, shotgun: 2, rocket: 3 };
-const IDX_WEAPON = ["pistol", "mg", "shotgun", "rocket"];
+const WEAPON_IDX = { pistol: 0, mg: 1, shotgun: 2, rocket: 3, mines: 4 };
+const IDX_WEAPON = ["pistol", "mg", "shotgun", "rocket", "mines"];
+// bonusy z beden (zbraně + vylepšení); váhy = jak často padají
+const DROPS = ["mg", "mg", "shotgun", "shotgun", "rocket", "mines", "health", "health", "shield", "turbo"];
+const SHIELD_TICKS = 180, TURBO_TICKS = 210, TURBO = 1.5;            // 6 s štít, 7 s turbo (×1,5 rychlost)
+const MINE = { arm: 30, life: 900, trigger: 30, radius: 88, dmg: 80, max: 24, perPlayer: 3 };
+const MAX_PICKUPS = 6;
 
 function palette(n) {
   const a = [];
@@ -182,21 +189,27 @@ function genSpawns() {
 
 /* ============================ MÍSTNOSTI ============================ */
 const rooms = new Map();
-function getRoom(code) {
-  code = (typeof code === "string" ? code : "").slice(0, 24).replace(/[^\w\-]/g, "") || "main";
-  let r = rooms.get(code);
-  if (!r) {
-    if (rooms.size >= MAX_ROOMS) return null;
-    r = {
-      code, players: new Map(), bullets: [], powerups: [],
-      phase: "lobby", countdown: 0, cdTimer: 0, overTimer: 0,
-      powerupTimer: 180, nid: 0, tick: 0, spawns: [], roundWinner: -1,
-      mapIdx: -1, mapQueue: null, walls: MAPS[0].walls,
-    };
-    nextMap(r);
-    rooms.set(code, r);
-  }
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // bez 0/O a 1/I, ať se kód dobře přepisuje
+function normCode(code) { return (typeof code === "string" ? code : "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8); }
+function createRoom() {
+  if (rooms.size >= MAX_ROOMS) return null;
+  let code;
+  do { code = Array.from({ length: 5 }, () => CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]).join(""); } while (rooms.has(code));
+  const r = {
+    code, players: new Map(), bullets: [], powerups: [], hostId: 0, rounds: ROUNDS_TO_WIN,
+    phase: "lobby", countdown: 0, cdTimer: 0, overTimer: 0,
+    powerupTimer: 180, nid: 0, tick: 0, spawns: [], roundWinner: -1,
+    mapIdx: -1, mapQueue: null, walls: MAPS[0].walls,
+    mines: [], ev: [], puId: 0, mineId: 0, botNames: 0,
+  };
+  nextMap(r);
+  rooms.set(code, r);
   return r;
+}
+function backToLobby(room) {
+  room.phase = "lobby"; room.bullets = []; room.mines = []; room.powerups = [];
+  for (const p of room.players.values()) { p.alive = false; p.waiting = false; }
+  broadcastRoster(room);
 }
 
 function freeColorIdx(room, pref) {
@@ -221,38 +234,24 @@ function makePlayer(room, ws, name, prefColor, bot) {
     id, ws: ws || null, bot: !!bot, name, colorIdx: ci, color: COLORS[ci],
     x: 0, y: 0, vx: 0, vy: 0, angle: -Math.PI / 2,
     hp: 100, maxHp: 100, alive: false, waiting: false,
-    weapon: "pistol", ammo: Infinity, cd: 0, wins: 0, kills: 0,
+    weapon: "pistol", ammo: Infinity, cd: 0, wins: 0, kills: 0, shield: 0, turbo: 0,
     in: { ax: 0, ay: 0, fire: false },
-    ai: { aim: 0, agg: 0.55 + Math.random() * 0.4, strafe: Math.random() < 0.5 ? 1 : -1, timer: 0 },
+    ai: { aim: 0, agg: 0.55 + Math.random() * 0.4, strafe: Math.random() < 0.5 ? 1 : -1, timer: 0, side: Math.random() < 0.5 ? 1 : -1, stuckT: 0, sx: 0, sy: 0 },
   };
 }
 
+const BOT_NAMES = ["Pepa", "Jarda", "Mirek", "Franta", "Lojza", "Vašek", "Standa", "Bohouš", "Zdena", "Kája",
+  "Máňa", "Ferda", "Tonda", "Olga", "Béďa", "Kuba", "Eda", "Věra", "Míla", "Šimon"];
 function addBot(room) {
   if (room.players.size >= MAX) return;
-  const b = makePlayer(room, null, null, undefined, true);
+  const used = new Set([...room.players.values()].map((p) => p.name));
+  let name = BOT_NAMES.map((n) => "Bot " + n).find((n) => !used.has(n)) || null;
+  const b = makePlayer(room, null, name, undefined, true);
   room.players.set(b.id, b);
-}
-
-function ensureBots(room) {
-  const humans = [...room.players.values()].filter((p) => !p.bot);
-  if (humans.length === 0) {
-    for (const p of [...room.players.values()]) if (p.bot) room.players.delete(p.id);
-    return;
-  }
-  // doplň boty do BOTS_FILL bojovníků
-  while (room.players.size < Math.min(BOTS_FILL, MAX)) addBot(room);
-  // uber přebytečné boty, když přibylo lidí
-  const target = Math.max(BOTS_FILL, humans.length);
-  if (room.players.size > target) {
-    const bots = [...room.players.values()].filter((p) => p.bot);
-    let over = room.players.size - target;
-    for (const b of bots) { if (over <= 0) break; room.players.delete(b.id); over--; }
-  }
 }
 
 /* ============================ SIMULACE ============================ */
 function startRound(room) {
-  ensureBots(room);
   nextMap(room);
   broadcast(room, { t: "map", walls: room.walls, name: MAPS[room.mapIdx].name, idx: room.mapIdx, count: MAPS.length });
   const list = [...room.players.values()];
@@ -260,52 +259,64 @@ function startRound(room) {
     const sp = room.spawns[i % room.spawns.length] || { x: W / 2, y: H / 2 };
     p.x = sp.x; p.y = sp.y; p.vx = 0; p.vy = 0;
     p.hp = p.maxHp; p.alive = true; p.waiting = false;
-    p.weapon = "pistol"; p.ammo = Infinity; p.cd = 0;
+    p.weapon = "pistol"; p.ammo = Infinity; p.cd = 0; p.shield = 0; p.turbo = 0;
     p.angle = Math.atan2(H / 2 - p.y, W / 2 - p.x);
   });
-  room.bullets = []; room.powerups = []; room.powerupTimer = 180;
-  room.phase = "count"; room.countdown = 3; room.cdTimer = 30; room.roundWinner = -1;
+  room.bullets = []; room.powerups = []; room.mines = []; room.ev = []; room.powerupTimer = 90;
+  room.phase = "count"; room.countdown = 3; room.cdTimer = 30; room.roundWinner = -1; room.playT = 0;
   broadcastRoster(room);
-}
-
-function maybeStart(room) {
-  if (room.phase !== "lobby") return;
-  ensureBots(room);
-  if (room.players.size >= 2) startRound(room);
-  else broadcastRoster(room);
 }
 
 function tryFire(room, p) {
   if (p.cd > 0) return;
   const wpn = WEAPONS[p.weapon];
-  p.cd = wpn.cd;
-  for (let i = 0; i < wpn.count; i++) {
-    let a = p.angle;
-    if (wpn.count > 1) a += (i - (wpn.count - 1) / 2) * wpn.spread;
-    else a += (Math.random() * 2 - 1) * wpn.spread;
-    room.bullets.push({
-      x: p.x + Math.cos(p.angle) * (BR + 6), y: p.y + Math.sin(p.angle) * (BR + 6),
-      vx: Math.cos(a) * wpn.speed, vy: Math.sin(a) * wpn.speed,
-      dmg: wpn.dmg, r: wpn.r, life: wpn.life, owner: p.id, color: p.color,
-      explode: !!wpn.explode, radius: wpn.radius || 0, splash: wpn.splash || 0,
-    });
+  const wIdx = WEAPON_IDX[p.weapon];
+  if (wpn.mine) {
+    // mina se pokládá za sebe; max 3 vlastní (nejstarší zmizí), max 24 v místnosti
+    if (room.mines.length >= MINE.max) return;
+    const own = room.mines.filter((m) => m.owner === p.id);
+    if (own.length >= MINE.perPlayer) room.mines.splice(room.mines.indexOf(own[0]), 1);
+    let mx = p.x - Math.cos(p.angle) * (BR + 10), my = p.y - Math.sin(p.angle) * (BR + 10);
+    if (hitsWall(mx, my, 8)) { mx = p.x; my = p.y; }
+    room.mines.push({ id: ++room.mineId, x: mx, y: my, owner: p.id, arm: MINE.arm, life: MINE.life });
+  } else {
+    for (let i = 0; i < wpn.count; i++) {
+      let a = p.angle;
+      if (wpn.count > 1) a += (i - (wpn.count - 1) / 2) * wpn.spread;
+      else a += (Math.random() * 2 - 1) * wpn.spread;
+      room.bullets.push({
+        x: p.x + Math.cos(p.angle) * (BR + 6), y: p.y + Math.sin(p.angle) * (BR + 6),
+        vx: Math.cos(a) * wpn.speed, vy: Math.sin(a) * wpn.speed,
+        dmg: wpn.dmg, r: wpn.r, life: wpn.life, owner: p.id, color: p.color, w: wIdx,
+        explode: !!wpn.explode, radius: wpn.radius || 0, splash: wpn.splash || 0,
+      });
+    }
   }
-  if (wpn.ammo !== Infinity) { p.ammo--; if (p.ammo <= 0) { p.weapon = "pistol"; p.ammo = Infinity; } }
+  p.cd = wpn.cd;
+  room.ev.push(["f", p.id, wIdx]);
+  if (wpn.ammo !== Infinity) {
+    p.ammo--;
+    if (p.ammo <= 0) { p.weapon = "pistol"; p.ammo = Infinity; room.ev.push(["e", p.id]); }
+  }
 }
-function damage(room, t, amount, ownerId) {
+function damage(room, t, amount, ownerId, wIdx) {
   if (!t.alive) return;
+  if (t.shield > 0) { room.ev.push(["b", t.id]); return; } // štít všechno odrazí
   t.hp -= amount;
+  room.ev.push(["h", t.id, Math.max(1, Math.round(amount)), ownerId]);
   if (t.hp <= 0) {
     t.alive = false;
     const k = room.players.get(ownerId);
     if (k && k.id !== t.id) k.kills++;
+    room.ev.push(["k", ownerId, t.id, wIdx | 0]);
   }
 }
-function explode(room, x, y, radius, dmg, ownerId) {
+function explode(room, x, y, radius, dmg, ownerId, wIdx) {
+  room.ev.push(["x", Math.round(x), Math.round(y), radius]);
   for (const t of room.players.values()) {
     if (!t.alive) continue;
     const d = Math.hypot(t.x - x, t.y - y);
-    if (d < radius) damage(room, t, dmg * (1 - d / radius), ownerId);
+    if (d < radius) damage(room, t, dmg * (1 - d / radius), ownerId, wIdx);
   }
 }
 function botThink(room, b) {
@@ -316,25 +327,52 @@ function botThink(room, b) {
     if (d < best) { best = d; tgt = o; }
   }
   let ax = 0, ay = 0, fire = false;
+  const ai = b.ai;
   if (tgt) {
     const see = lineClear(b.x, b.y, tgt.x, tgt.y);
     const ang = Math.atan2(tgt.y - b.y, tgt.x - b.x);
-    b.ai.aim += (((ang - b.ai.aim + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * 0.18;
+    // míření s předsazením podle pohybu cíle (a drobnou nepřesností)
+    const wpn = WEAPONS[b.weapon], spd = wpn.speed || 9;
+    const lead = best / spd;
+    const aimAng = Math.atan2(tgt.y + tgt.vy * lead - b.y, tgt.x + tgt.vx * lead - b.x) + (Math.random() - 0.5) * 0.12;
+    const diff = (((aimAng - ai.aim + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+    ai.aim += diff * 0.32;
+    let goal = null; // kam jít, když zrovna nebojuje
     if (see) {
-      const ideal = 210;
+      const ideal = b.weapon === "shotgun" ? 120 : 170;
       const fwd = best > ideal + 40 ? 1 : best < ideal - 40 ? -1 : 0;
-      ax = Math.cos(ang) * fwd + Math.cos(ang + Math.PI / 2) * b.ai.strafe * 0.9;
-      ay = Math.sin(ang) * fwd + Math.sin(ang + Math.PI / 2) * b.ai.strafe * 0.9;
-      const aimErr = Math.abs(((ang - b.ai.aim + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
-      if (aimErr < 0.28 && Math.random() < b.ai.agg) fire = true;
-    } else { ax = Math.cos(ang); ay = Math.sin(ang); }
-    if (--b.ai.timer <= 0) { b.ai.strafe *= -1; b.ai.timer = 40 + Math.random() * 70; }
-    if (hitsWall(b.x + ax * 6, b.y + ay * 6, BR)) {
-      ax = Math.cos(ang + Math.PI / 2) * b.ai.strafe;
-      ay = Math.sin(ang + Math.PI / 2) * b.ai.strafe;
+      ax = Math.cos(ang) * fwd + Math.cos(ang + Math.PI / 2) * ai.strafe * 0.85;
+      ay = Math.sin(ang) * fwd + Math.sin(ang + Math.PI / 2) * ai.strafe * 0.85;
+      if (Math.abs(diff) < 0.22 && Math.random() < ai.agg) fire = true;
+    } else goal = tgt;
+    if (--ai.timer <= 0) { ai.strafe *= -1; ai.timer = 40 + Math.random() * 70; }
+    // bedny: s pistolí sebere blízkou, zraněný jde pro lékárnu
+    if ((b.weapon === "pistol" || b.hp < 50) && (!see || best > 260)) {
+      let pu = null, pd = 1e9;
+      for (const c of room.powerups) {
+        const d = Math.hypot(c.x - b.x, c.y - b.y);
+        const limit = b.hp < 50 && c.kind === "health" ? 340 : 230;
+        if (d < limit && d < pd) { pd = d; pu = c; }
+      }
+      if (pu) goal = pu;
+    }
+    if (goal) { const a2 = Math.atan2(goal.y - b.y, goal.x - b.x); ax = Math.cos(a2); ay = Math.sin(a2); }
+    if (b.weapon === "mines") fire = see && best < 170;
+    // obcházení zdí: zkus přímý směr, pak postupně víc do strany (preferovaná strana se mění, když se zasekne)
+    if (ax || ay) {
+      const base = Math.atan2(ay, ax);
+      for (const off of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8, 2.5, -2.5]) {
+        const a3 = base + off * ai.side;
+        if (!hitsWall(b.x + Math.cos(a3) * 14, b.y + Math.sin(a3) * 14, BR)) { ax = Math.cos(a3); ay = Math.sin(a3); break; }
+      }
+    }
+    // detekce zaseknutí
+    if (++ai.stuckT >= 45) {
+      if (Math.hypot(b.x - ai.sx, b.y - ai.sy) < 12) ai.side *= -1;
+      ai.sx = b.x; ai.sy = b.y; ai.stuckT = 0;
     }
   }
-  return { ax, ay, fire, aim: b.ai.aim };
+  return { ax, ay, fire, aim: ai.aim };
 }
 
 function updateRoom(room) {
@@ -343,17 +381,21 @@ function updateRoom(room) {
   if (room.phase === "count") {
     if (--room.cdTimer <= 0) { room.countdown--; room.cdTimer = 30; if (room.countdown < 0) room.phase = "play"; }
   } else if (room.phase === "play") {
+    room.playT++;
     // hráči
     for (const p of room.players.values()) {
       if (!p.alive) continue;
       if (p.cd > 0) p.cd--;
+      if (p.shield > 0) p.shield--;
+      if (p.turbo > 0) p.turbo--;
       let ax = p.in.ax, ay = p.in.ay, fire = p.in.fire;
       if (p.bot) { const r = botThink(room, p); ax = r.ax; ay = r.ay; fire = r.fire; p.angle = r.aim; }
       const mag = Math.hypot(ax, ay);
       if (mag > 0.05) {
         ax /= mag; ay /= mag;
         if (!p.bot) p.angle = Math.atan2(ay, ax);
-        p.vx = ax * SPEED; p.vy = ay * SPEED;
+        const sp = SPEED * (p.turbo > 0 ? TURBO : 1);
+        p.vx = ax * sp; p.vy = ay * sp;
       } else { p.vx *= 0.6; p.vy *= 0.6; }
       let nx = p.x + p.vx; if (!hitsWall(nx, p.y, BR)) p.x = clamp(nx, BR, W - BR);
       let ny = p.y + p.vy; if (!hitsWall(p.x, ny, BR)) p.y = clamp(ny, BR, H - BR);
@@ -362,7 +404,10 @@ function updateRoom(room) {
         const pu = room.powerups[i];
         if (Math.hypot(p.x - pu.x, p.y - pu.y) < BR + 14) {
           if (pu.kind === "health") p.hp = Math.min(p.maxHp, p.hp + 45);
-          else { p.weapon = pu.kind; p.ammo = WEAPONS[pu.kind].ammo; }
+          else if (pu.kind === "shield") p.shield = SHIELD_TICKS;
+          else if (pu.kind === "turbo") p.turbo = TURBO_TICKS;
+          else { p.weapon = pu.kind; p.ammo = WEAPONS[pu.kind].ammo; p.cd = 0; }
+          room.ev.push(["p", p.id, pu.kind, pu.id]);
           room.powerups.splice(i, 1);
         }
       }
@@ -373,47 +418,70 @@ function updateRoom(room) {
       const bl = room.bullets[i];
       bl.x += bl.vx; bl.y += bl.vy; bl.life--;
       let dead = bl.life <= 0;
-      if (!dead && pointInWall(bl.x, bl.y)) { if (bl.explode) explode(room, bl.x, bl.y, bl.radius, bl.splash, bl.owner); dead = true; }
+      if (!dead && pointInWall(bl.x, bl.y)) {
+        if (bl.explode) explode(room, bl.x, bl.y, bl.radius, bl.splash, bl.owner, bl.w);
+        else room.ev.push(["w", Math.round(bl.x - bl.vx * 0.5), Math.round(bl.y - bl.vy * 0.5)]);
+        dead = true;
+      }
       if (!dead) {
         for (const t of room.players.values()) {
           if (!t.alive || t.id === bl.owner) continue;
           if (Math.hypot(bl.x - t.x, bl.y - t.y) < bl.r + BR) {
-            if (bl.explode) explode(room, bl.x, bl.y, bl.radius, bl.dmg + bl.splash, bl.owner);
-            else damage(room, t, bl.dmg, bl.owner);
+            if (bl.explode) explode(room, bl.x, bl.y, bl.radius, bl.dmg + bl.splash, bl.owner, bl.w);
+            else damage(room, t, bl.dmg, bl.owner, bl.w);
             dead = true; break;
           }
         }
       }
       if (dead) room.bullets.splice(i, 1);
     }
-    // powerup spawn
-    if (--room.powerupTimer <= 0 && room.powerups.length < 5) {
-      spawnPowerup(room); room.powerupTimer = 300 + Math.random() * 200;
+    // miny
+    for (let i = room.mines.length - 1; i >= 0; i--) {
+      const m = room.mines[i];
+      if (m.arm > 0) { m.arm--; continue; }
+      if (--m.life <= 0) { room.mines.splice(i, 1); continue; }
+      for (const t of room.players.values()) {
+        if (!t.alive || t.id === m.owner) continue;
+        if (Math.hypot(t.x - m.x, t.y - m.y) < MINE.trigger + BR) {
+          room.mines.splice(i, 1);
+          explode(room, m.x, m.y, MINE.radius, MINE.dmg, m.owner, WEAPON_IDX.mines);
+          break;
+        }
+      }
+    }
+    // bedny s bonusy
+    if (--room.powerupTimer <= 0) {
+      if (room.powerups.length < MAX_PICKUPS) spawnPowerup(room);
+      room.powerupTimer = 180 + Math.random() * 120;
     }
     // konec kola
     const alive = [...room.players.values()].filter((p) => p.alive);
-    if (alive.length <= 1 && room.players.size >= 2) endRound(room, alive[0] || null);
-  } else if (room.phase === "roundover" || room.phase === "matchover") {
-    if (--room.overTimer <= 0) {
-      if (room.phase === "matchover") { for (const p of room.players.values()) { p.wins = 0; p.kills = 0; } }
-      if (room.players.size >= 2) startRound(room);
-      else { room.phase = "lobby"; broadcastRoster(room); }
-    }
+    if (room.players.size < 2) backToLobby(room);
+    else if (alive.length <= 1) endRound(room, alive[0] || null);
+    else if (room.playT >= ROUND_TICKS) endRound(room, null); // čas vypršel → remíza
+  } else if (room.phase === "roundover") {
+    if (--room.overTimer <= 0) { if (room.players.size >= 2) startRound(room); else backToLobby(room); }
+  } else if (room.phase === "matchover") {
+    if (--room.overTimer <= 0) backToLobby(room); // další zápas spouští zase hostitel
   }
+  if (room.phase === "count" && room.players.size < 2) backToLobby(room);
 }
 
 function spawnPowerup(room) {
-  const kinds = ["mg", "shotgun", "rocket", "health", "health"];
-  const kind = kinds[Math.floor(Math.random() * kinds.length)];
+  const kind = DROPS[Math.floor(Math.random() * DROPS.length)];
   for (let t = 0; t < 30; t++) {
     const x = 70 + Math.random() * (W - 140), y = 70 + Math.random() * (H - 140);
-    if (!hitsWall(x, y, 26)) { room.powerups.push({ x, y, kind }); return; }
+    if (hitsWall(x, y, 26)) continue;
+    if (room.powerups.some((c) => Math.hypot(c.x - x, c.y - y) < 80)) continue;
+    if ([...room.players.values()].some((p) => p.alive && Math.hypot(p.x - x, p.y - y) < 60)) continue;
+    room.powerups.push({ id: ++room.puId, x, y, kind });
+    return;
   }
 }
 function endRound(room, winner) {
   if (winner) winner.wins++;
   room.roundWinner = winner ? winner.id : -1;
-  const champ = [...room.players.values()].find((p) => p.wins >= ROUNDS_TO_WIN);
+  const champ = [...room.players.values()].find((p) => p.wins >= room.rounds);
   broadcastRoster(room);
   if (champ) {
     room.phase = "matchover"; room.overTimer = 8 * 30;
@@ -469,7 +537,11 @@ function broadcast(room, obj) {
 }
 function broadcastRoster(room) {
   const players = [...room.players.values()].map((p) => [p.id, p.name, p.color, p.wins, p.kills, p.bot ? 1 : 0]);
-  broadcast(room, { t: "roster", players });
+  broadcast(room, { t: "roster", players, host: room.hostId, code: room.code, rounds: room.rounds, phase: room.phase });
+}
+function hostOf(ws) { // akce smí dělat jen hostitel své místnosti
+  const p = ws.player, room = ws.room;
+  return p && room && room.hostId === p.id ? room : null;
 }
 
 wss.on("connection", (ws, req) => {
@@ -489,21 +561,43 @@ wss.on("connection", (ws, req) => {
     if (isBinary) return;
     let m; try { m = JSON.parse(raw); } catch { return; }
     if (!m || typeof m !== "object") return;
-    if (m.t === "join") {
+    if (m.t === "create" || m.t === "join") {
       if (ws.player) return;
-      const room = getRoom(m.room);
-      if (!room) { send(ws, { t: "busy" }); return; }
+      let room;
+      if (m.t === "create") { room = createRoom(); if (!room) { send(ws, { t: "busy" }); return; } }
+      else { room = rooms.get(normCode(m.room)); if (!room) { send(ws, { t: "nogame" }); return; } }
       if (room.players.size >= MAX) { send(ws, { t: "full" }); return; }
       const p = makePlayer(room, ws, m.name, m.color, false);
       room.players.set(p.id, p); ws.player = p; ws.room = room;
-      if (room.phase === "play" || room.phase === "count") { p.alive = false; p.waiting = true; }
+      if (!room.hostId) room.hostId = p.id;
+      if (room.phase !== "lobby") { p.alive = false; p.waiting = true; } // zápas běží: přidá se od dalšího kola
       send(ws, {
-        t: "welcome", id: p.id, color: p.color, W, H, BR, SPEED, walls: room.walls, mapName: MAPS[room.mapIdx].name,
-        weapons: Object.fromEntries(Object.entries(WEAPONS).map(([k, v]) => [k, v.name])),
-        maxRounds: ROUNDS_TO_WIN, room: room.code,
+        t: "welcome", id: p.id, color: p.color, W, H, BR, SPEED, TURBO, walls: room.walls,
+        mapName: MAPS[room.mapIdx].name, mapIdx: room.mapIdx,
+        weapons: IDX_WEAPON.map((k) => WEAPONS[k].name),
+        maxRounds: room.rounds, room: room.code, host: room.hostId, max: MAX,
       });
       broadcastRoster(room);
-      maybeStart(room);
+    } else if (m.t === "start") {
+      const room = hostOf(ws);
+      if (!room || room.phase !== "lobby" || room.players.size < 2) return;
+      for (const p of room.players.values()) { p.wins = 0; p.kills = 0; }
+      startRound(room);
+    } else if (m.t === "addbot") {
+      const room = hostOf(ws);
+      if (!room || room.phase !== "lobby") return;
+      addBot(room); broadcastRoster(room);
+    } else if (m.t === "kick") {
+      const room = hostOf(ws);
+      if (!room || !Number.isInteger(m.id) || m.id === room.hostId) return;
+      const t = room.players.get(m.id);
+      if (!t) return;
+      if (t.bot) { room.players.delete(t.id); broadcastRoster(room); }
+      else if (t.ws) { send(t.ws, { t: "kicked" }); removePlayer(t.ws); t.ws.close(4001, "kicked"); }
+    } else if (m.t === "rounds") {
+      const room = hostOf(ws);
+      if (!room || room.phase !== "lobby" || !ROUND_CHOICES.includes(m.n)) return;
+      room.rounds = m.n; broadcastRoster(room);
     } else if (m.t === "in" && ws.player) {
       ws.player.in.ax = clamp(+m.ax || 0, -1, 1);
       ws.player.in.ay = clamp(+m.ay || 0, -1, 1);
@@ -521,12 +615,14 @@ function removePlayer(ws) {
   if (!room || !p) return;
   room.players.delete(p.id);
   ws.player = null; ws.room = null;
-  if ([...room.players.values()].filter((x) => !x.bot).length === 0) {
-    rooms.delete(room.code); // prázdnou místnost zahodíme
+  const humans = [...room.players.values()].filter((x) => !x.bot);
+  if (humans.length === 0) {
+    rooms.delete(room.code); // bez lidí místnost zahodíme (i s boty)
     return;
   }
-  ensureBots(room);
-  broadcastRoster(room);
+  if (room.hostId === p.id) room.hostId = humans[0].id; // hostitel odešel → předá se dalšímu
+  if (room.phase !== "lobby" && room.players.size < 2) backToLobby(room);
+  else broadcastRoster(room);
 }
 
 /* heartbeat – zahoď mrtvá spojení */
@@ -543,13 +639,18 @@ setInterval(() => {
     updateRoom(room);
     const ps = [];
     for (const p of room.players.values())
-      ps.push([p.id, Math.round(p.x), Math.round(p.y), +p.angle.toFixed(2), Math.max(0, Math.round(p.hp)), WEAPON_IDX[p.weapon], p.alive ? 1 : 0]);
-    const bs = room.bullets.map((b) => [Math.round(b.x), Math.round(b.y), +b.vx.toFixed(1), +b.vy.toFixed(1), b.r, b.color]);
-    const pu = room.powerups.map((p) => [Math.round(p.x), Math.round(p.y), p.kind]);
-    broadcast(room, { t: "s", k: room.tick, ph: room.phase, cd: room.countdown, ps, bs, pu });
+      ps.push([p.id, Math.round(p.x), Math.round(p.y), +p.angle.toFixed(2), Math.max(0, Math.round(p.hp)), WEAPON_IDX[p.weapon], p.alive ? 1 : 0,
+        p.ammo === Infinity ? -1 : p.ammo, (p.shield > 0 ? 1 : 0) | (p.turbo > 0 ? 2 : 0), Math.max(p.shield, p.turbo)]);
+    const bs = room.bullets.map((b) => [Math.round(b.x), Math.round(b.y), +b.vx.toFixed(1), +b.vy.toFixed(1), b.r, b.color, b.w]);
+    const pu = room.powerups.map((p) => [Math.round(p.x), Math.round(p.y), p.kind, p.id]);
+    const mn = room.mines.map((m) => [Math.round(m.x), Math.round(m.y), m.owner, m.arm > 0 ? 0 : 1, m.id]);
+    const msg = { t: "s", k: room.tick, ph: room.phase, cd: room.countdown, ps, bs, pu, mn };
+    if (room.phase === "play") msg.tl = Math.max(0, Math.ceil((ROUND_TICKS - room.playT) / 30));
+    if (room.ev.length) { msg.ev = room.ev; room.ev = []; }
+    broadcast(room, msg);
   }
 }, TICK);
 
 server.listen(PORT, () => {
-  console.log(`Bulánci online běží na portu ${PORT} (kol: ${ROUNDS_TO_WIN}, boti do: ${BOTS_FILL})`);
+  console.log(`Bulánci online běží na portu ${PORT} (výchozí počet kol: ${ROUNDS_TO_WIN})`);
 });

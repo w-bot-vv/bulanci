@@ -35,21 +35,28 @@
   .brand{display:flex;align-items:center;gap:14px}
   .logo{width:54px;height:54px;flex:0 0 auto}
   h1{font-family:"Baloo 2";font-weight:800;margin:0;font-size:clamp(26px,5.4vw,46px);letter-spacing:.5px;line-height:1}
-  h1 small{display:block;font-family:"Fredoka";font-weight:500;font-size:clamp(12px,2.4vw,15px);color:var(--muted);margin-top:6px}
+  h1 small{display:block;font-family:"Fredoka";font-weight:500;font-size:clamp(12px,2.4vw,15px);color:var(--muted);margin-top:6px;letter-spacing:0}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;max-width:460px}
   .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
   .field label{font-size:13px;color:var(--muted);font-weight:600}
-  .field input,.field select{background:#161b29;color:var(--ink);border:1px solid var(--line);
+  .field input,.row input{background:#161b29;color:var(--ink);border:1px solid var(--line);
     border-radius:10px;padding:12px;font-family:inherit;font-size:16px}
+  .row{display:flex;gap:10px;align-items:stretch}
+  .row input{flex:1;min-width:0;text-transform:uppercase;letter-spacing:4px;font-weight:700;font-size:18px}
+  .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:16px 0 12px}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
   .btn{font-family:"Baloo 2";font-weight:800;cursor:pointer;border:none;border-radius:12px;padding:14px 22px;
     font-size:18px;background:var(--primary);color:var(--primary-ink);box-shadow:0 6px 0 #b8902a}
   .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b8902a}
   .btn.ghost{background:var(--panel-2);color:var(--ink);box-shadow:0 6px 0 #11141f}
   .btn.ghost:active{box-shadow:0 2px 0 #11141f}
-  .btn:disabled{opacity:.55;cursor:default;transform:none}
+  .btn.small{font-size:15px;padding:10px 14px;box-shadow:0 4px 0 #11141f}
+  .btn.small:not(.ghost){box-shadow:0 4px 0 #b8902a}
+  .btn.wide{width:100%}
+  .btn:disabled{opacity:.5;cursor:default;transform:none}
   .status{font-size:14px;color:var(--muted);min-height:20px;margin-top:10px}
   .status.err{color:var(--coral)}
-  .foot{font-size:12px;color:var(--muted);line-height:1.5}
+  .foot{font-size:12px;color:var(--muted);line-height:1.55}
   kbd{background:#0d1119;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;font-family:inherit;font-size:12px}
   .msg{align-items:center;justify-content:center;text-align:center;background:rgba(10,12,18,.55)}
   .msg.solid{background:linear-gradient(180deg,rgba(13,16,24,.92),rgba(13,16,24,.97))}
@@ -60,6 +67,35 @@
   .standrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
   .chip{width:18px;height:18px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.3)}
   .standrow .score{margin-left:auto;font-family:"Baloo 2";font-weight:800;font-size:18px}
+  .standrow .kills{color:var(--muted);font-size:13px}
+  /* lobby */
+  .lobbyHead{display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between}
+  .codeBox{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 10px 8px 14px}
+  .codeBox .lbl{font-size:11px;color:var(--muted);letter-spacing:1px}
+  .codeBox .code{font-family:"Baloo 2";font-weight:800;font-size:30px;letter-spacing:4px;color:var(--primary);line-height:1.05}
+  .lobbyGrid{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
+  @media (max-width:720px){.lobbyGrid{grid-template-columns:1fr}}
+  .plist{display:flex;flex-direction:column;gap:6px}
+  .lrow{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px 6px 10px;min-height:42px}
+  .lrow .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--panel-2);color:var(--muted);white-space:nowrap}
+  .tag.host{background:#3a2f0a;color:var(--primary)}
+  .tag.me{background:#14324a;color:#8fd0ff}
+  .tag.bot{background:#2a2140;color:#d2b6ff}
+  .wins{font-size:12px;color:var(--muted);white-space:nowrap}
+  .kick{margin-left:auto;flex:0 0 auto;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;
+    min-width:30px;height:30px;cursor:pointer;font-size:14px;font-family:inherit;font-weight:700;padding:0 8px}
+  .kick:hover{color:var(--coral);border-color:var(--coral)}
+  .kick.arm{color:#fff;background:var(--coral);border-color:var(--coral)}
+  .side{display:flex;flex-direction:column;gap:12px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:9px 0;border-radius:9px;border:1px solid var(--line);background:#161b29;color:var(--ink);
+    font-family:"Baloo 2";font-weight:800;font-size:16px;cursor:pointer}
+  .seg button.on{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
+  .hint{font-size:13px;color:var(--muted);line-height:1.45}
+  .linkIn{width:100%;background:#161b29;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:12px}
+  #muteBtn{position:absolute;top:10px;right:10px;z-index:6;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(13,16,24,.82);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 </style>
 </head>
 <body>
@@ -76,24 +112,59 @@
           <circle cx="25.5" cy="31" r="2.6" fill="#14131b"/><circle cx="41.5" cy="31" r="2.6" fill="#14131b"/>
           <rect x="30" y="6" width="20" height="8" rx="3" fill="#cfd6e6" transform="rotate(-12 30 10)"/>
         </svg>
-        <h1>BULÁNCI ONLINE<small>Připoj se do arény · poslední přeživší bere kolo</small></h1>
+        <h1>BULÁNCI ONLINE<small>Založ hru, pozvi kámoše · poslední přeživší bere kolo</small></h1>
       </div>
       <div class="card">
         <div class="field">
           <label for="name">Tvoje jméno</label>
           <input id="name" maxlength="16" placeholder="Hráč" autocomplete="off">
         </div>
-        <div class="field">
-          <label for="room">Kód místnosti (nepovinné – všichni stejný = spolu)</label>
-          <input id="room" maxlength="24" placeholder="main" autocomplete="off">
+        <button id="createBtn" class="btn wide" type="button">Založit novou hru</button>
+        <div class="or">nebo se připoj ke hře kamaráda</div>
+        <div class="row">
+          <input id="code" maxlength="8" placeholder="KÓD" autocomplete="off" aria-label="Kód hry">
+          <button id="joinBtn" class="btn ghost" type="button">Připojit</button>
         </div>
-        <button id="joinBtn" class="btn">Připojit se</button>
-        <div id="status" class="status"></div>
+        <div id="status" class="status" role="status"></div>
       </div>
       <div class="foot">
-        Aréna pojme až 20 hráčů. Míříš tam, kam jdeš; palba střílí ve směru pohybu.<br>
-        Pohyb: <kbd>WASD</kbd> nebo šipky · Palba: <kbd>mezerník</kbd> nebo <kbd>Enter</kbd> · Gamepad funguje taky.<br>
-        Na mobilu: levá půlka = pohyb, pravá = palba. Odchod ze hry: <kbd>Esc</kbd>.
+        Hostitel založí hru a pošle kamarádům kód nebo odkaz. Hra začne, až ji spustí.<br>
+        Pohyb: <kbd>WASD</kbd> nebo šipky · Palba: <kbd>mezerník</kbd> nebo <kbd>Enter</kbd> · Gamepad funguje taky · Zvuk: <kbd>M</kbd><br>
+        Bedny: samopal, brokovnice, raketomet, miny, lékárna, štít, turbo. Na mobilu: levá půlka = pohyb, pravá = palba.
+      </div>
+    </div>
+
+    <!-- LOBBY -->
+    <div id="lobby" class="overlay hidden">
+      <div class="lobbyHead">
+        <h1 style="font-size:clamp(26px,4.6vw,40px)">Lobby<small id="lobbySub">Čeká se na spuštění hry</small></h1>
+        <div class="codeBox">
+          <div><div class="lbl">KÓD HRY</div><div class="code" id="lobbyCode">-----</div></div>
+          <button id="copyBtn" class="btn small ghost" type="button">Kopírovat odkaz</button>
+        </div>
+      </div>
+      <div class="lobbyGrid">
+        <div>
+          <div class="hint" id="plCount" style="margin-bottom:8px">Hráči</div>
+          <div id="lobbyList" class="plist"></div>
+        </div>
+        <div class="side">
+          <div id="hostCtl" class="side">
+            <button id="addBotBtn" class="btn ghost small" type="button">+ Přidat bota</button>
+            <div><div class="hint" style="margin-bottom:6px">Výher do konce zápasu</div><div class="seg" id="roundsSeg"></div></div>
+            <button id="startBtn" class="btn wide" type="button">▶ Spustit hru</button>
+            <div class="hint" id="startHint"></div>
+          </div>
+          <div id="guestInfo" class="dlg hidden" style="padding:16px">
+            <b>Čekáme na hostitele</b>
+            <div class="hint" id="guestTxt" style="margin-top:6px"></div>
+          </div>
+          <div>
+            <div class="hint" style="margin-bottom:6px">Odkaz pro kamarády</div>
+            <input id="linkIn" class="linkIn" readonly aria-label="Odkaz pro kamarády">
+          </div>
+          <button id="leaveBtn" class="btn ghost small" type="button">Odejít z lobby</button>
+        </div>
       </div>
     </div>
 
@@ -103,7 +174,6 @@
         <p class="big" id="msgBig"></p>
         <p class="sub" id="msgSub"></p>
         <div id="standings" class="standings"></div>
-        <div id="msgBtns" style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"></div>
       </div>
     </div>
 
@@ -124,56 +194,132 @@
     <div id="rotate" class="overlay msg solid hidden">
       <div><p class="big">↻</p><p class="sub">Otoč telefon na šířku.</p></div>
     </div>
+
+    <button id="muteBtn" type="button"></button>
   </div>
 </div>
 
 <script>
 "use strict";
-const cv=document.getElementById('game'), ctx=cv.getContext('2d');
-let W=1000,H=640,BR=17,SPEED=2.7;
+const $=id=>document.getElementById(id);
+const cv=$('game'), ctx=cv.getContext('2d');
+let W=1000,H=640,BR=17,SPEED=2.7,TURBO=1.5;
+const DPR=Math.min(2,window.devicePixelRatio||1);
+function sizeCanvas(){ cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); }
+sizeCanvas();
 const IS_TOUCH=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||('ontouchstart' in window);
 const TICKRATE=30, INTERP=100;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+/* ---------- vzhled zbraní a bonusů ---------- */
+const WKEY=['pistol','mg','shotgun','rocket','mines'];
+const WNAME=['Pistole','Samopal','Brokovnice','Raketomet','Miny'];
+const WCOL=['#cfd6e6','#4aa3ff','#ff9a3c','#ff4d6d','#c27bff'];
+const AMMO_MAX=[0,60,10,5,3];
+const PICK={
+  mg:{label:'SAMOPAL',col:'#4aa3ff',snd:'pickup',sub:'60 nábojů · rychlá palba'},
+  shotgun:{label:'BROKOVNICE',col:'#ff9a3c',snd:'pickup',sub:'10 ran · 6 broků naráz'},
+  rocket:{label:'RAKETOMET',col:'#ff4d6d',snd:'pickup',sub:'5 raket · výbuch'},
+  mines:{label:'MINY',col:'#c27bff',snd:'pickup',sub:'3 miny · pokládáš je za sebe'},
+  health:{label:'+45 ŽIVOTA',col:'#51d167',snd:'health',sub:'lékárna'},
+  shield:{label:'ŠTÍT',col:'#4fe3ff',snd:'shield',sub:'6 s nezranitelnost'},
+  turbo:{label:'TURBO',col:'#ffd13f',snd:'turbo',sub:'7 s rychlost ×1,5'},
+};
+
+/* ---------- zvuk (syntetizovaný, žádné soubory) ---------- */
+const Snd=(()=>{
+  let ac=null,out=null,nbuf=null,muted=false,live=0; const last={};
+  try{ muted=localStorage.getItem('bulanci-zvuk')==='0'; }catch{}
+  function init(){ try{
+    if(!ac){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      ac=new AC(); out=ac.createGain(); out.gain.value=muted?0:.5;
+      const comp=ac.createDynamicsCompressor(); out.connect(comp); comp.connect(ac.destination);
+      nbuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate); const d=nbuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
+    if(ac.state==='suspended') ac.resume(); }catch{} }
+  function dest(pan){ if(pan&&ac.createStereoPanner){ const p=ac.createStereoPanner(); p.pan.value=Math.max(-1,Math.min(1,pan)); p.connect(out); return p; } return out; }
+  function env(g,t,vol,d){ g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),t+.006); g.gain.exponentialRampToValueAtTime(.0001,t+d); }
+  function tone(o){ const t=ac.currentTime+(o.delay||0); const osc=ac.createOscillator(), g=ac.createGain();
+    osc.type=o.type||'sine'; osc.frequency.setValueAtTime(o.f,t); if(o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2,t+o.d);
+    env(g,t,o.vol,o.d); osc.connect(g); g.connect(dest(o.pan)); osc.start(t); osc.stop(t+o.d+.03);
+    live++; osc.onended=()=>{ live--; try{g.disconnect();}catch{} }; }
+  function noise(o){ const t=ac.currentTime+(o.delay||0); const src=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain();
+    src.buffer=nbuf; f.type=o.type||'lowpass'; f.frequency.setValueAtTime(o.ff,t); if(o.ff2) f.frequency.exponentialRampToValueAtTime(o.ff2,t+o.d); f.Q.value=o.q||.8;
+    env(g,t,o.vol,o.d); src.connect(f); f.connect(g); g.connect(dest(o.pan)); src.start(t,Math.random()*.5); src.stop(t+o.d+.03);
+    live++; src.onended=()=>{ live--; try{g.disconnect();}catch{} }; }
+  const S={
+    shot0:(v,p)=>{ noise({d:.09,vol:.45*v,ff:2400,ff2:500,type:'bandpass',q:1,pan:p}); tone({f:520,f2:140,d:.07,type:'square',vol:.1*v,pan:p}); },
+    shot1:(v,p)=>{ noise({d:.06,vol:.32*v,ff:3200,ff2:900,type:'bandpass',q:1.2,pan:p}); tone({f:700,f2:260,d:.04,type:'square',vol:.07*v,pan:p}); },
+    shot2:(v,p)=>{ noise({d:.22,vol:.7*v,ff:1800,ff2:200,pan:p}); tone({f:160,f2:50,d:.16,type:'triangle',vol:.32*v,pan:p}); },
+    shot3:(v,p)=>{ noise({d:.45,vol:.42*v,ff:300,ff2:2200,type:'bandpass',q:.8,pan:p}); tone({f:120,f2:60,d:.3,type:'sawtooth',vol:.1*v,pan:p}); },
+    shot4:(v,p)=>{ tone({f:300,f2:200,d:.08,type:'square',vol:.12*v,pan:p}); tone({f:900,d:.05,vol:.14*v,pan:p,delay:.08}); },
+    boom:(v,p)=>{ noise({d:.9,vol:.95*v,ff:1200,ff2:60,pan:p}); tone({f:95,f2:30,d:.7,vol:.75*v,pan:p}); },
+    hit:(v,p)=>{ tone({f:260,f2:120,d:.07,type:'square',vol:.15*v,pan:p}); noise({d:.05,vol:.22*v,ff:1500,pan:p}); },
+    hitmark:()=>tone({f:1500,f2:1200,d:.05,vol:.16}),
+    splat:(v,p)=>{ noise({d:.3,vol:.65*v,ff:900,ff2:120,pan:p}); tone({f:340,f2:55,d:.28,type:'triangle',vol:.32*v,pan:p}); },
+    wall:(v,p)=>noise({d:.03,vol:.1*v,ff:4000,type:'highpass',pan:p}),
+    pickup:(v,p)=>[523,659,784,1047].forEach((f,i)=>tone({f,d:.13,type:'triangle',vol:.26*v,pan:p,delay:i*.055})),
+    health:(v,p)=>{ tone({f:440,f2:880,d:.22,vol:.28*v,pan:p}); tone({f:660,f2:1320,d:.22,vol:.14*v,pan:p,delay:.06}); },
+    shield:(v,p)=>[392,523,659,784].forEach((f,i)=>tone({f,d:.5,vol:.13*v,pan:p,delay:i*.03})),
+    turbo:(v,p)=>{ tone({f:180,f2:900,d:.35,type:'sawtooth',vol:.1*v,pan:p}); noise({d:.35,vol:.18*v,ff:500,ff2:4000,type:'bandpass',pan:p}); },
+    block:(v,p)=>tone({f:1200,f2:1800,d:.12,type:'triangle',vol:.18*v,pan:p}),
+    empty:()=>tone({f:220,d:.06,type:'square',vol:.1}),
+    beep:()=>tone({f:660,d:.13,vol:.28}),
+    go:()=>{ tone({f:990,d:.32,vol:.28}); tone({f:1320,d:.32,vol:.14,delay:.02}); },
+    round:()=>[659,784,988].forEach((f,i)=>tone({f,d:.16,type:'triangle',vol:.2,delay:i*.09})),
+    win:()=>[523,659,784,1047,784,1047].forEach((f,i)=>tone({f,d:.18,type:'triangle',vol:.24,delay:i*.11})),
+    multi:()=>[784,988,1175].forEach((f,i)=>tone({f,d:.14,type:'square',vol:.1,delay:i*.07})),
+    join:()=>tone({f:880,f2:1320,d:.12,vol:.14}),
+  };
+  const GAP={shot0:30,shot1:35,shot2:45,hit:30,wall:50,splat:40,join:150};
+  function play(name,o){ if(!ac||muted||live>48||!S[name]) return;
+    const now=performance.now(); if(GAP[name]&&now-(last[name]||0)<GAP[name]) return; last[name]=now;
+    let v=(o&&o.vol!=null)?o.vol:1, pan=0;
+    if(o&&o.x!=null){ const L=listener(); const d=Math.hypot(o.x-L.x,o.y-L.y); v*=Math.max(.15,1-d/1100); pan=(o.x-L.x)/(W*.7); }
+    try{ S[name](v,pan); }catch{} }
+  function setMuted(m){ muted=m; try{ localStorage.setItem('bulanci-zvuk',m?'0':'1'); }catch{} if(out) out.gain.value=m?0:.5; }
+  return {init,play,setMuted,isMuted:()=>muted};
+})();
+const muteBtn=$('muteBtn');
+function syncMute(){ const m=Snd.isMuted(); muteBtn.textContent=m?'🔇':'🔊'; muteBtn.title=m?'Zapnout zvuk (M)':'Vypnout zvuk (M)'; muteBtn.setAttribute('aria-label',muteBtn.title); }
+muteBtn.onclick=()=>{ Snd.init(); Snd.setMuted(!Snd.isMuted()); syncMute(); muteBtn.blur(); };
+syncMute();
 
 /* ---------- síť ---------- */
-let ws=null, myId=null, myColor='#fff', walls=[], weaponNames=[], maxRounds=5;
-let connected=false, joinInfo=null, wantReconnect=false, reconnectT=null;
-let latency=0;
-const statusEl=document.getElementById('status');
-
-function serverURL(){
-  const proto=location.protocol==='https:'?'wss':'ws';
-  return proto+'://'+location.host;
-}
+let ws=null, myId=null, myColor='#fff', walls=[], maxRounds=5;
+let connected=false, joinInfo=null, wantReconnect=false, reconnectT=null, inGame=false;
+let latency=0, roomCode='', hostId=0, lobbyRounds=5;
+const statusEl=$('status');
+function serverURL(){ return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
 function setStatus(txt,err){ statusEl.textContent=txt; statusEl.classList.toggle('err',!!err); }
+function send(o){ if(ws&&connected){ try{ ws.send(JSON.stringify(o)); }catch{} } }
 
 function connect(){
-  let url; try{ url=serverURL(); }catch(e){ setStatus('Neplatná adresa serveru.',true); return; }
-  setStatus('Připojuji… (pokud server spal, první start může trvat ~30 s)');
-  try{ ws=new WebSocket(url); }catch(e){ setStatus('Nelze se připojit: '+e.message,true); return; }
-  ws.onopen=()=>{ connected=true; ws.send(JSON.stringify(Object.assign({t:'join'},joinInfo))); };
+  setStatus('Připojuji… (pokud server spal, první start může trvat ~50 s)');
+  try{ ws=new WebSocket(serverURL()); }catch(e){ setStatus('Nelze se připojit: '+e.message,true); return; }
+  ws.onopen=()=>{ connected=true; ws.send(JSON.stringify(joinInfo)); };
   ws.onmessage=(ev)=>{ let m; try{m=JSON.parse(ev.data);}catch{return;} onMsg(m); };
   ws.onclose=()=>{
-    connected=false;
-    if(wantReconnect){ setStatus('Spojení přerušeno – zkouším znovu…',true); showMenu(false); clearTimeout(reconnectT); reconnectT=setTimeout(connect,1500); }
+    connected=false; syncLobby();
+    if(wantReconnect){ setStatus('Spojení přerušeno – zkouším znovu…',true); showMenu(); clearTimeout(reconnectT); reconnectT=setTimeout(connect,1500); }
   };
   ws.onerror=()=>{};
 }
 let lastSent='';
 function sendInput(force){
-  if(!connected) return; const i=readInput();
+  if(!connected||!inGame) return; const i=readInput();
   const msg=JSON.stringify({t:'in',ax:+i.ax.toFixed(2),ay:+i.ay.toFixed(2),f:i.fire});
   if(!force&&msg===lastSent) return; lastSent=msg; try{ ws.send(msg); }catch{}
 }
 setInterval(()=>sendInput(false),16);   // změna vstupu odejde do ~16 ms
 setInterval(()=>sendInput(true),250);    // a pro jistotu pravidelně i beze změny
-setInterval(()=>{ if(connected){ try{ ws.send(JSON.stringify({t:'ping',ts:performance.now()})); }catch{} } },1000);
+setInterval(()=>{ if(connected) send({t:'ping',ts:performance.now()}); },1000);
 
 /* ---------- příchozí zprávy ---------- */
 let roster=new Map();      // id -> {name,color,wins,kills,bot}
 let snaps=[];              // interpolační buffer
 let phase='lobby', countdown=0, roundWinner=-1, mapName='';
 const pred={x:W/2,y:H/2}; const predHist=[]; // {t,x,y} – historie predikce pro reconciliaci
-function predAt(t){ // poloha predikce v čase t (lineárně mezi záznamy)
+function predAt(t){
   if(!predHist.length) return {x:pred.x,y:pred.y};
   for(let i=predHist.length-1;i>0;i--){ const a=predHist[i-1],b=predHist[i];
     if(a.t<=t){ const f=b.t>a.t?Math.min(1,Math.max(0,(t-a.t)/(b.t-a.t))):1; return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f}; } }
@@ -184,53 +330,67 @@ function shiftPred(dx,dy){
   if(!hitsWall(nx,pred.y,BR)) pred.x=nx; if(!hitsWall(pred.x,ny,BR)) pred.y=ny;
   for(const e of predHist){ e.x+=dx; e.y+=dy; }
 }
-let predAlive=false, predHp=0, myWeapon=0, myAngle=-Math.PI/2, predInit=false;
+let predAlive=false, predHp=0, myWeapon=0, myAmmo=-1, myFlags=0, myFxT=0, myAngle=-Math.PI/2, predInit=false;
+let prevCd=null, prevPhase='lobby', cdT=0, timeLeft=-1, prevTl=-1;
 
 function onMsg(m){
-  if(m.t==='welcome'){
-    myId=m.id; myColor=m.color; W=m.W; H=m.H; BR=m.BR; SPEED=m.SPEED; walls=m.walls; mapName=m.mapName||'';
-    weaponNames=m.weapons; maxRounds=m.maxRounds;
-    cv.width=W; cv.height=H;
-    document.getElementById('menu').classList.add('hidden');
-    setStatus(''); snaps=[]; predInit=false;
-  }else if(m.t==='roster'){
+  switch(m.t){
+  case 'welcome':
+    myId=m.id; myColor=m.color; W=m.W; H=m.H; BR=m.BR; SPEED=m.SPEED; TURBO=m.TURBO||1.5;
+    walls=m.walls; mapName=m.mapName||''; maxRounds=m.maxRounds; roomCode=m.room; hostId=m.host;
+    sizeCanvas(); bakeMap(m.mapIdx|0); resetRoundFx();
+    joinInfo={t:'join',name:joinInfo?joinInfo.name:'',room:roomCode}; // při výpadku se vrátíme do stejné hry
+    inGame=true; $('menu').classList.add('hidden'); setStatus(''); snaps=[]; predInit=false; evq.length=0;
+    try{ history.replaceState(null,'','?hra='+roomCode); }catch{}
+    renderLobby(); syncLobby(); break;
+  case 'roster': {
+    const before=roster.size;
     roster=new Map(); for(const r of m.players) roster.set(r[0],{name:r[1],color:r[2],wins:r[3],kills:r[4],bot:r[5]});
-  }else if(m.t==='s'){
-    onState(m);
-  }else if(m.t==='round'){
-    roundWinner=m.winner;
-    const w=roster.get(m.winner);
-    showMsg(w?w.name+' bere kolo!':'Remíza!', w?('Skóre '+w.wins+' / '+maxRounds):'', false, 1600);
-  }else if(m.t==='match'){
-    showMatch(m.champ, m.standings);
-  }else if(m.t==='map'){
-    walls=m.walls; mapName=m.name||''; predInit=false; predHist.length=0;
-  }else if(m.t==='pong'){
-    { const r=Math.round(performance.now()-m.ts); latency=latency?Math.round(latency*0.7+r*0.3):r; }
-  }else if(m.t==='busy'){
-    wantReconnect=false; setStatus('Server je teď plný (moc místností). Zkus to za chvíli nebo se přidej do existující místnosti.',true);
-    try{ws.close();}catch{}
-  }else if(m.t==='full'){
-    setStatus('Aréna je plná (20 hráčů). Zkus to za chvíli nebo jiný kód místnosti.',true);
-    wantReconnect=false; try{ws.close();}catch{}
+    if(roster.size>before&&before>0&&phase==='lobby') Snd.play('join');
+    hostId=m.host; lobbyRounds=m.rounds; maxRounds=m.rounds; if(m.phase) phase=m.phase;
+    renderLobby(); syncLobby(); break; }
+  case 's': onState(m); break;
+  case 'round':
+    setTimeout(()=>{ roundWinner=m.winner; const w=roster.get(m.winner);
+      showMsg(w?w.name+' bere kolo!':'Remíza!', w?('Výhry '+w.wins+' / '+maxRounds):'Čas vypršel – kolo nikdo nevyhrál', false, 1700);
+      const pos=posOf(m.winner); if(pos) confetti(pos.x,pos.y,55);
+      Snd.play(m.winner===myId?'win':'round'); },300);
+    break;
+  case 'match': setTimeout(()=>{ showMatch(m.champ,m.standings); confetti(W/2,H*.35,130); Snd.play('win'); },300); break;
+  case 'map': walls=m.walls; mapName=m.name||''; bakeMap(m.idx|0); predInit=false; predHist.length=0; resetRoundFx(); break;
+  case 'pong': { const r=Math.round(performance.now()-m.ts); latency=latency?Math.round(latency*.7+r*.3):r; break; }
+  case 'busy': fail('Server je teď plný (moc rozehraných her). Zkus to za chvíli.'); break;
+  case 'full': fail('Tahle hra je plná (20 hráčů).'); break;
+  case 'nogame': fail('Hra s kódem „'+((joinInfo&&joinInfo.room)||'')+'“ neexistuje nebo už skončila.'); break;
+  case 'kicked': fail('Hostitel tě vyhodil ze hry.'); break;
   }
 }
+function fail(txt){
+  wantReconnect=false; clearTimeout(reconnectT); try{ ws&&ws.close(); }catch{} connected=false; inGame=false;
+  showMenu(); setStatus(txt,true); syncLobby();
+}
 function onState(m){
+  const now=performance.now();
   const players={};
-  for(const t of m.ps) players[t[0]]={x:t[1],y:t[2],a:t[3],h:t[4],w:t[5],al:t[6]};
-  snaps.push({at:performance.now(),players,bullets:m.bs||[],pu:m.pu||[]});
+  for(const t of m.ps) players[t[0]]={x:t[1],y:t[2],a:t[3],h:t[4],w:t[5],al:t[6],am:t[7],fl:t[8],ft:t[9]};
+  snaps.push({at:now,players,bullets:m.bs||[],pu:m.pu||[],mn:m.mn||[]});
   if(snaps.length>40) snaps.shift();
-  phase=m.ph; countdown=m.cd;
-  if(phase==='play'||phase==='count') hideMsgIfTransient();
-  // reconcile mé postavy
+  if(m.ph==='count'&&prevPhase!=='count'){ firstBlood=false; myKills.length=0; }
+  if(m.ph==='count'&&m.cd!==prevCd){ cdT=now; Snd.play(m.cd>0?'beep':'go'); }
+  const phaseChanged=m.ph!==phase;
+  prevCd=m.cd; prevPhase=m.ph; phase=m.ph; countdown=m.cd;
+  timeLeft=m.tl!=null?m.tl:-1;
+  if(timeLeft>=0&&timeLeft<=5&&timeLeft!==prevTl) Snd.play('beep'); prevTl=timeLeft;
+  if(phaseChanged) syncLobby();
+  if(m.ev) queueEvents(m.ev,now);
   const me=players[myId];
   if(me){
-    myWeapon=me.w; predHp=me.h; predAlive=!!me.al;
+    myWeapon=me.w; myAmmo=me.am; myFlags=me.fl; myFxT=me.ft; predHp=me.h; predAlive=!!me.al;
     if(!predInit){ pred.x=me.x; pred.y=me.y; predInit=true; }
     else if(me.al){
       // server posílá polohu starou ~RTT: porovnáme ji s tím, kde jsme byli tehdy, ne teď
       const back=(latency||100)+1000/TICKRATE;
-      const h=predAt(performance.now()-back);
+      const h=predAt(now-back);
       const ex=me.x-h.x, ey=me.y-h.y, err=Math.hypot(ex,ey);
       if(err>90){ pred.x=me.x; pred.y=me.y; predHist.length=0; }
       else if(err>1.5){ const k=0.15; shiftPred(ex*k,ey*k); }
@@ -240,18 +400,25 @@ function onState(m){
 
 /* ---------- vstup ---------- */
 const keys=new Set();
+const isField=t=>t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA');
 addEventListener('keydown',e=>{
+  if(isField(e.target)) return;                      // psaní jména / kódu nechá hra na pokoji
+  Snd.init();
+  if(e.code==='Escape'){ e.preventDefault(); if(quitOpen()) closeQuit(); else askQuit(); return; }
+  if(e.code==='KeyM'&&!e.repeat){ Snd.setMuted(!Snd.isMuted()); syncMute(); return; }
+  const playing=inGame&&phase!=='lobby';
+  if(!playing) return;                               // v lobby/menu fungují tlačítka normálně
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(e.code)) e.preventDefault();
   if(quitOpen()&&(e.code==='Enter'||e.code==='Space')) return; // ať palba omylem nepotvrdí dialog
+  if(document.activeElement&&document.activeElement!==document.body) document.activeElement.blur();
   keys.add(e.code);
-  if(e.code==='Escape'){ e.preventDefault(); if(quitOpen()) closeQuit(); else askQuit(); }
 },{passive:false});
 addEventListener('keyup',e=>keys.delete(e.code));
 addEventListener('blur',()=>keys.clear());
 
 const WASD={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD',fire:'Space'};
 const ARROWS={up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',fire:'Enter'};
-let usedTouch=IS_TOUCH; // dotykové ovládání se ukáže na dotykových zařízeních nebo po prvním dotyku
+let usedTouch=IS_TOUCH;
 function gpInput(){
   const pads=navigator.getGamepads?navigator.getGamepads():[]; const g=pads[0]; if(!g) return null;
   let ax=g.axes[0]||0, ay=g.axes[1]||0;
@@ -261,9 +428,8 @@ function gpInput(){
   return {ax,ay,fire:(g.buttons[0]&&g.buttons[0].pressed)||(g.buttons[7]&&g.buttons[7].pressed)};
 }
 function readInput(){
-  if(quitOpen()) return {ax:0,ay:0,fire:false};
+  if(quitOpen()||phase==='lobby') return {ax:0,ay:0,fire:false};
   let ax=0,ay=0,fire=false;
-  // všechna ovládání najednou: klávesnice (WASD i šipky), gamepad, dotyk
   for(const s of [WASD,ARROWS]){
     if(keys.has(s.left))ax-=1; if(keys.has(s.right))ax+=1; if(keys.has(s.up))ay-=1; if(keys.has(s.down))ay+=1;
     if(keys.has(s.fire))fire=true; }
@@ -279,7 +445,7 @@ function readInput(){
 const touch={joyId:null,ox:0,oy:0,kx:0,ky:0,ax:0,ay:0,fireIds:new Set()};
 const JOY_R=82;
 function toLogical(t){ const r=cv.getBoundingClientRect(); return {x:(t.clientX-r.left)/r.width*W,y:(t.clientY-r.top)/r.height*H}; }
-cv.addEventListener('touchstart',e=>{ e.preventDefault(); usedTouch=true; for(const t of e.changedTouches){ const p=toLogical(t);
+cv.addEventListener('touchstart',e=>{ e.preventDefault(); usedTouch=true; Snd.init(); for(const t of e.changedTouches){ const p=toLogical(t);
   if(p.x<W*0.46){ if(touch.joyId===null){touch.joyId=t.identifier;touch.ox=p.x;touch.oy=p.y;touch.kx=p.x;touch.ky=p.y;touch.ax=0;touch.ay=0;} }
   else touch.fireIds.add(t.identifier); } },{passive:false});
 cv.addEventListener('touchmove',e=>{ e.preventDefault(); for(const t of e.changedTouches){ if(t.identifier===touch.joyId){
@@ -290,209 +456,695 @@ function touchEnd(e){ e.preventDefault(); for(const t of e.changedTouches){ if(t
 cv.addEventListener('touchend',touchEnd,{passive:false});
 cv.addEventListener('touchcancel',touchEnd,{passive:false});
 
-/* ---------- menu / přechody ---------- */
-document.getElementById('joinBtn').onclick=()=>{
-  const name=document.getElementById('name').value.trim();
-  const room=document.getElementById('room').value.trim();
-  joinInfo={name,room}; wantReconnect=true;
-  if(document.activeElement)document.activeElement.blur();
+/* ---------- menu ---------- */
+const nameIn=$('name'), codeIn=$('code');
+function normCode(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8); }
+function startSession(info){
+  Snd.init();
+  const name=nameIn.value.trim();
+  try{ localStorage.setItem('bulanci-jmeno',name); }catch{}
+  joinInfo=Object.assign({name},info); wantReconnect=true;
+  if(document.activeElement) document.activeElement.blur();
+  clearTimeout(reconnectT); try{ ws&&ws.close(); }catch{}
   connect();
-};
-function showMenu(clearWs){
-  document.getElementById('menu').classList.remove('hidden');
-  hideMsg();
-  if(clearWs){ wantReconnect=false; clearTimeout(reconnectT); if(ws){try{ws.close();}catch{}} connected=false; }
 }
-function leaveToMenu(){ if(document.getElementById('menu').classList.contains('hidden')){ showMenu(true); setStatus(''); } }
-const quitEl=document.getElementById('quitDlg');
-const quitOpen=()=>!quitEl.classList.contains('hidden');
-function askQuit(){ // jen ve hře (v menu není co ukončovat)
-  if(!document.getElementById('menu').classList.contains('hidden')) return;
-  keys.clear(); quitEl.classList.remove('hidden');
+$('createBtn').onclick=()=>startSession({t:'create'});
+$('joinBtn').onclick=()=>{ const c=normCode(codeIn.value); if(!c){ setStatus('Zadej kód hry od kamaráda.',true); codeIn.focus(); return; } startSession({t:'join',room:c}); };
+codeIn.addEventListener('input',()=>{ const c=normCode(codeIn.value); if(codeIn.value!==c) codeIn.value=c; });
+codeIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('joinBtn').click(); } });
+nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); (normCode(codeIn.value)?$('joinBtn'):$('createBtn')).click(); } });
+function showMenu(){ $('menu').classList.remove('hidden'); hideMsg(); }
+function leaveToMenu(){
+  wantReconnect=false; clearTimeout(reconnectT); try{ ws&&ws.close(); }catch{} connected=false; inGame=false;
+  roster=new Map(); showMenu(); setStatus(''); syncLobby();
+  try{ history.replaceState(null,'',location.pathname); }catch{}
 }
-function closeQuit(){ quitEl.classList.add('hidden'); keys.clear(); if(document.activeElement)document.activeElement.blur(); }
-document.getElementById('quitNo').onclick=closeQuit;
-document.getElementById('quitYes').onclick=()=>{ closeQuit(); leaveToMenu(); };
 
-const msgEl=document.getElementById('msg');
+/* ---------- lobby ---------- */
+const segEl=$('roundsSeg');
+for(const n of [3,5,7,10]){ const b=document.createElement('button'); b.type='button'; b.textContent=n; b.dataset.n=n;
+  b.onclick=()=>{ send({t:'rounds',n}); b.blur(); }; segEl.append(b); }
+$('addBotBtn').onclick=()=>{ send({t:'addbot'}); $('addBotBtn').blur(); };
+$('startBtn').onclick=()=>{ Snd.init(); send({t:'start'}); $('startBtn').blur(); };
+$('leaveBtn').onclick=()=>leaveToMenu();
+const linkIn=$('linkIn');
+linkIn.addEventListener('focus',()=>linkIn.select());
+$('copyBtn').onclick=async()=>{
+  const btn=$('copyBtn'); let ok=false;
+  try{ await navigator.clipboard.writeText(linkIn.value); ok=true; }catch{}
+  if(!ok){ linkIn.focus(); linkIn.select(); try{ ok=document.execCommand('copy'); }catch{} }
+  btn.textContent=ok?'Zkopírováno ✓':'Označeno – zkopíruj'; btn.blur();
+  setTimeout(()=>{ btn.textContent='Kopírovat odkaz'; },1800);
+};
+function syncLobby(){
+  const show=inGame&&connected&&phase==='lobby';
+  $('lobby').classList.toggle('hidden',!show);
+  if(show&&quitOpen()) closeQuit();
+}
+function renderLobby(){
+  $('lobbyCode').textContent=roomCode||'-----';
+  linkIn.value=location.origin+location.pathname+'?hra='+roomCode;
+  const isHost=hostId===myId;
+  $('hostCtl').classList.toggle('hidden',!isHost);
+  $('guestInfo').classList.toggle('hidden',isHost);
+  const list=$('lobbyList'); list.textContent='';
+  const arr=[...roster.entries()];
+  $('plCount').textContent='Hráči: '+arr.length+' / 20';
+  for(const [id,p] of arr){
+    const row=document.createElement('div'); row.className='lrow';
+    const chip=document.createElement('span'); chip.className='chip'; chip.style.background=p.color;
+    const nm=document.createElement('span'); nm.className='nm'; nm.textContent=p.name;
+    row.append(chip,nm);
+    const tag=(cls,txt)=>{ const t=document.createElement('span'); t.className='tag '+cls; t.textContent=txt; row.append(t); };
+    if(id===hostId) tag('host','👑 hostitel');
+    if(id===myId) tag('me','ty');
+    if(p.bot) tag('bot','bot');
+    if(p.wins>0){ const w=document.createElement('span'); w.className='wins'; w.textContent='🏆 '+p.wins; row.append(w); }
+    if(isHost&&id!==myId){
+      const b=document.createElement('button'); b.className='kick'; b.type='button'; b.textContent='✕';
+      b.title=p.bot?'Odebrat bota':'Vyhodit hráče'; b.setAttribute('aria-label',b.title+' '+p.name);
+      b.onclick=()=>{
+        if(!p.bot&&b.dataset.arm!=='1'){ // u lidí potvrzení druhým kliknutím
+          b.dataset.arm='1'; b.textContent='Vyhodit?'; b.classList.add('arm');
+          setTimeout(()=>{ b.dataset.arm=''; b.textContent='✕'; b.classList.remove('arm'); },3000); return; }
+        send({t:'kick',id}); b.blur(); };
+      row.append(b);
+    }
+    list.append(row);
+  }
+  for(const b of segEl.children) b.classList.toggle('on',+b.dataset.n===lobbyRounds);
+  const n=arr.length;
+  $('addBotBtn').disabled=n>=20;
+  $('startBtn').disabled=n<2;
+  $('startHint').textContent=n<2
+    ?'Potřebuješ aspoň 2 hráče – přidej bota nebo počkej na kamarády.'
+    :'Hra začne pro všechny v lobby. Kdo se připojí později, naskočí od dalšího kola.';
+  $('guestTxt').textContent='Hru spustí '+(nameOf(hostId)||'hostitel')+'. Hraje se na '+lobbyRounds+' výher.';
+  $('lobbySub').textContent=isHost?'Pošli kamarádům kód nebo odkaz a spusť hru, až budete připravení.':'Jsi v lobby – hra začne, až ji hostitel spustí.';
+}
+
+/* ---------- potvrzení odchodu ---------- */
+const quitEl=$('quitDlg');
+const quitOpen=()=>!quitEl.classList.contains('hidden');
+function askQuit(){ if(!inGame) return; keys.clear(); quitEl.classList.remove('hidden'); }
+function closeQuit(){ quitEl.classList.add('hidden'); keys.clear(); if(document.activeElement)document.activeElement.blur(); }
+$('quitNo').onclick=closeQuit;
+$('quitYes').onclick=()=>{ closeQuit(); leaveToMenu(); };
+
+/* ---------- zprávy přes obrazovku ---------- */
+const msgEl=$('msg');
 let msgTimer=null;
 function showMsg(big,sub,solid,autoHide){
-  document.getElementById('msgBig').textContent=big;
-  document.getElementById('msgSub').textContent=sub;
-  document.getElementById('standings').innerHTML='';
-  document.getElementById('msgBtns').innerHTML='';
+  $('msgBig').textContent=big; $('msgSub').textContent=sub; $('standings').textContent='';
   msgEl.classList.toggle('solid',!!solid); msgEl.classList.remove('hidden');
   clearTimeout(msgTimer);
   if(autoHide) msgTimer=setTimeout(()=>msgEl.classList.add('hidden'),autoHide);
 }
 function hideMsg(){ msgEl.classList.add('hidden'); }
-function hideMsgIfTransient(){ /* countdown/hra kreslí přímo na canvas; overlay skryjeme */ if(!msgEl.classList.contains('solid')) { /* necháme případný round popisek dojet timerem */ } }
 function showMatch(champId,st){
   const c=roster.get(champId);
-  document.getElementById('msgBig').textContent='🏆 '+(c?c.name:'Vítěz')+' vyhrál!';
-  document.getElementById('msgSub').textContent='Konečné pořadí · nový zápas začne za chvíli';
-  const el=document.getElementById('standings'); el.innerHTML='';
+  $('msgBig').textContent='🏆 '+(c?c.name:'Vítěz')+' vyhrál!';
+  $('msgSub').textContent='Konečné pořadí · pak zpátky do lobby';
+  const el=$('standings'); el.textContent='';
   st.forEach((s,i)=>{ const row=document.createElement('div'); row.className='standrow';
     const chip=document.createElement('span'); chip.className='chip'; chip.style.background=String(s[2]);
     const nm=document.createElement('span'); nm.textContent=(i+1)+'. '+s[1];
-    const sc=document.createElement('span'); sc.className='score'; sc.textContent=String(s[3]);
-    row.append(chip,nm,sc);
-    el.appendChild(row); });
-  document.getElementById('msgBtns').innerHTML='';
+    const k=document.createElement('span'); k.className='kills'; k.textContent='💥 '+s[4]+' zabití';
+    const sc=document.createElement('span'); sc.className='score'; sc.textContent='🏆 '+s[3];
+    row.append(chip,nm,k,sc); el.appendChild(row); });
   msgEl.classList.add('solid'); msgEl.classList.remove('hidden');
-  clearTimeout(msgTimer); msgTimer=setTimeout(()=>msgEl.classList.add('hidden'),8000);
+  clearTimeout(msgTimer); msgTimer=setTimeout(()=>msgEl.classList.add('hidden'),7600);
 }
 
 /* orientace na mobilu */
-let rotateBlock=false; const rotateEl=document.getElementById('rotate');
+let rotateBlock=false; const rotateEl=$('rotate');
 function checkOrient(){
   const portrait=window.innerHeight>window.innerWidth;
-  const inGame=document.getElementById('menu').classList.contains('hidden');
-  rotateBlock=IS_TOUCH&&portrait&&inGame;
+  rotateBlock=IS_TOUCH&&portrait&&inGame&&phase!=='lobby';
   rotateEl.classList.toggle('hidden',!rotateBlock);
 }
 addEventListener('resize',checkOrient);
 addEventListener('orientationchange',()=>setTimeout(checkOrient,200));
 
-/* ---------- render ---------- */
+/* ================================ GRAFIKA ================================ */
 const lerp=(a,b,f)=>a+(b-a)*f;
 function lerpAngle(a,b,f){ let d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI; return a+d*f; }
 function colorOf(id){ const r=roster.get(id); return r?r.color:'#bbb'; }
 function nameOf(id){ const r=roster.get(id); return r?r.name:''; }
+function hexA(c,a){ return c+Math.round(Math.max(0,Math.min(1,a))*255).toString(16).padStart(2,'0'); }
+function withAlpha(c,a){ if(/^#[0-9a-f]{6}$/i.test(c)) return hexA(c,a); if(c.startsWith('hsl(')&&!c.includes('/')) return c.replace(')',' / '+a+')'); return c; }
+function listener(){ return predInit&&predAlive?{x:pred.x,y:pred.y}:{x:W/2,y:H/2}; }
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function hitsWall(x,y,r){ for(const w of walls) if(x+r>w.x&&x-r<w.x+w.w&&y+r>w.y&&y-r<w.y+w.h) return true; return false; }
 
+/* záře – předkreslené sprity podle barvy (rychlé i pro 20 hráčů) */
+const glowCache=new Map();
+function glow(col){ let g=glowCache.get(col); if(g) return g;
+  g=document.createElement('canvas'); g.width=g.height=128; const c=g.getContext('2d');
+  const gr=c.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,withAlpha(col,1)); gr.addColorStop(.35,withAlpha(col,.45)); gr.addColorStop(1,withAlpha(col,0));
+  c.fillStyle=gr; c.fillRect(0,0,128,128); glowCache.set(col,g); return g; }
+function drawGlow(x,y,r,col,a){ if(a<=0) return; ctx.save(); ctx.globalAlpha=Math.min(1,a); ctx.globalCompositeOperation='lighter'; ctx.drawImage(glow(col),x-r,y-r,r*2,r*2); ctx.restore(); }
+
+/* mapa: podlaha a zdi se kreslí jednou za kolo do vlastních pláten; skvrny zůstávají na podlaze */
+const THEMES=[
+  {floor:'#161c2b',tile:'#192032',wall:'#2c3a5c',top:'#43578f',edge:'#1b2440'}, // Pevnost
+  {floor:'#13201b',tile:'#16261f',wall:'#2b4a3c',top:'#41725b',edge:'#18291f'}, // Sloupy
+  {floor:'#1c1626',tile:'#20192d',wall:'#41305e',top:'#5f488c',edge:'#251b37'}, // Kříž
+  {floor:'#0f1d26',tile:'#12222d',wall:'#20475a',top:'#306a85',edge:'#122a36'}, // Bludiště
+  {floor:'#221912',tile:'#271d15',wall:'#55392a',top:'#7d573f',edge:'#2e1f16'}, // Aréna
+];
+let theme=THEMES[0];
+const floorCv=document.createElement('canvas'), fctx=floorCv.getContext('2d');
+const wallCv=document.createElement('canvas'), wctx=wallCv.getContext('2d');
+function seeded(s){ return ()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
+function bakeMap(idx){
+  theme=THEMES[((idx%THEMES.length)+THEMES.length)%THEMES.length];
+  for(const c of [floorCv,wallCv]){ c.width=Math.round(W*DPR); c.height=Math.round(H*DPR); }
+  fctx.setTransform(DPR,0,0,DPR,0,0); wctx.setTransform(DPR,0,0,DPR,0,0);
+  const r=seeded(1234+idx*97);
+  fctx.fillStyle=theme.floor; fctx.fillRect(0,0,W,H);
+  for(let x=0;x<W;x+=40) for(let y=0;y<H;y+=40){
+    if(((x+y)/40)%2){ fctx.fillStyle=theme.tile; fctx.fillRect(x,y,40,40); }
+    if(r()<.1){ fctx.fillStyle='rgba(255,255,255,'+(r()*.03).toFixed(3)+')'; fctx.fillRect(x+2,y+2,36,36); } }
+  for(let i=0;i<240;i++){ fctx.fillStyle='rgba(255,255,255,'+(r()*.05).toFixed(3)+')'; fctx.fillRect(r()*W,r()*H,r()*2+1,r()*2+1); }
+  const vg=fctx.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,W*.66); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.42)');
+  fctx.fillStyle=vg; fctx.fillRect(0,0,W,H);
+  wctx.clearRect(0,0,W,H);
+  for(const w of walls){ wctx.fillStyle='rgba(0,0,0,.35)'; wctx.fillRect(w.x+4,w.y+7,w.w,w.h); }
+  for(const w of walls){
+    const t=Math.min(6,w.h/3), b=Math.min(5,w.h/4);
+    wctx.fillStyle=theme.wall; wctx.fillRect(w.x,w.y,w.w,w.h);
+    wctx.fillStyle=theme.top; wctx.fillRect(w.x,w.y,w.w,t);
+    wctx.fillStyle=theme.edge; wctx.fillRect(w.x,w.y+w.h-b,w.w,b);
+    wctx.strokeStyle='rgba(255,255,255,.07)'; wctx.lineWidth=1; wctx.strokeRect(w.x+.5,w.y+.5,w.w-1,w.h-1);
+    if(w.w>=30&&w.h>=30){ wctx.fillStyle='rgba(255,255,255,.2)';
+      for(const [cx,cy] of [[w.x+6,w.y+10],[w.x+w.w-6,w.y+10],[w.x+6,w.y+w.h-9],[w.x+w.w-6,w.y+w.h-9]]){ wctx.beginPath(); wctx.arc(cx,cy,1.6,0,6.28); wctx.fill(); } }
+  }
+}
+function splat(x,y,col,size){
+  fctx.save(); fctx.globalAlpha=.5; fctx.fillStyle=col;
+  fctx.beginPath(); fctx.arc(x,y,size,0,6.28); fctx.fill();
+  for(let i=0;i<9;i++){ const a=rnd(0,6.28), d=rnd(size*.6,size*1.6); fctx.beginPath(); fctx.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,rnd(size*.18,size*.45),0,6.28); fctx.fill(); }
+  for(let i=0;i<16;i++){ const a=rnd(0,6.28), d=rnd(size*1.4,size*3.4); fctx.beginPath(); fctx.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,rnd(1.5,3.5),0,6.28); fctx.fill(); }
+  fctx.restore();
+}
+function scorch(x,y,r){ const g=fctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,'rgba(0,0,0,.55)'); g.addColorStop(.6,'rgba(0,0,0,.22)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  fctx.fillStyle=g; fctx.beginPath(); fctx.arc(x,y,r,0,6.28); fctx.fill(); }
+bakeMap(0);
+
+/* efekty */
+const parts=[], rings=[], texts=[], booms=[], feed=[];
+let shake=0, flash=null, announce=null, banner=null, firstBlood=false;
+const myKills=[];
+function part(o){ if(parts.length>=750) parts.shift();
+  parts.push(Object.assign({vx:0,vy:0,drag:4,size:3,life:.6,t:0,col:'#fff',kind:'dot',rot:rnd(0,6.28),vr:rnd(-8,8)},o)); }
+function burst(x,y,col,n,spd,size,life,kind){ for(let i=0;i<n;i++){ const a=rnd(0,6.28), s=rnd(spd*.35,spd);
+  part({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,col,size:rnd(size*.6,size*1.3),life:rnd(life*.6,life*1.2),kind}); } }
+function ring(x,y,col,r1,dur,w,delay){ rings.push({x,y,col,r1,dur,w,t0:performance.now()+(delay||0)}); }
+function ftext(x,y,txt,col,size,dur){ texts.push({x,y,txt,col,size,dur:dur||1000,t0:performance.now()}); if(texts.length>40) texts.shift(); }
+function addShake(a){ if(a>0) shake=Math.min(16,shake+a); }
+function confetti(x,y,n){ const cols=['#ffd13f','#ff5d54','#4aa3ff','#51d167','#c27bff','#ffffff'];
+  for(let i=0;i<n;i++){ const a=rnd(0,6.28), s=rnd(80,440); part({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-120,col:cols[i%cols.length],size:rnd(3,5),life:rnd(1,1.9),kind:'conf',drag:2.2}); } }
+const vis=new Map();
+function V(id){ let v=vis.get(id); if(!v){ v={hitT:-1e9,pickT:-1e9,pickCol:'#fff',fireT:-1e9,fireW:0,beamT:-1e9,markT:-1e9,trail:[],trailT:0,sparkT:0}; vis.set(id,v);} return v; }
+const drawnPos=new Map();
+function posOf(id){ if(id===myId&&predInit&&predAlive) return {x:pred.x,y:pred.y,a:myAngle};
+  const d=drawnPos.get(id); if(d) return d; const s=snaps[snaps.length-1]; const p=s&&s.players[id]; return p?{x:p.x,y:p.y,a:p.a}:null; }
+const puSeen=new Map(), landed=new Set(), takenIds=new Set();
+function resetRoundFx(){ puSeen.clear(); landed.clear(); takenIds.clear(); booms.length=0; rings.length=0; for(const v of vis.values()) v.trail.length=0; }
+
+/* herní události ze serveru: přehrávají se ve stejném zpoždění jako pohyb ostatních (INTERP) */
+const evq=[];
+function queueEvents(list,at){
+  for(const e of list){
+    const mine=(e[0]==='p'||e[0]==='f'||e[0]==='e')&&e[1]===myId; // vlastní akce hned
+    if(mine) handleEvent(e,false);
+    else { evq.push({due:at+INTERP,e}); if(evq.length>400) evq.shift(); }
+  }
+}
+function flushEvents(now){
+  for(let i=0;i<evq.length;){ const q=evq[i]; if(q.due<=now){ evq.splice(i,1); handleEvent(q.e,now-q.due>800); } else i++; }
+}
+function handleEvent(e,stale){
+  const now=performance.now();
+  switch(e[0]){
+  case 'p':{ const id=e[1], kind=e[2], P=PICK[kind]||{label:String(kind),col:'#fff',snd:'pickup'};
+    if(e[3]) takenIds.add(e[3]);
+    const v=V(id); v.pickT=now; v.pickCol=P.col; v.beamT=now;
+    const pos=posOf(id); if(stale||!pos) break;
+    ring(pos.x,pos.y,P.col,82,520,7); ring(pos.x,pos.y,'#ffffff',48,380,3,90);
+    burst(pos.x,pos.y,P.col,24,330,4,.75,'star'); burst(pos.x,pos.y,'#ffffff',8,220,2.5,.45,'spark');
+    ftext(pos.x,pos.y-40,P.label+'!',P.col,id===myId?24:16,1250);
+    if(id===myId){ banner={kind,t0:now}; flash={col:P.col,t0:now,dur:280,a:.16}; addShake(2); }
+    Snd.play(P.snd,{x:pos.x,y:pos.y,vol:id===myId?1:.55});
+    break; }
+  case 'f':{ const id=e[1], w=e[2]; const v=V(id); v.fireT=now; v.fireW=w; if(stale) break;
+    const pos=posOf(id); if(!pos) break;
+    if(w===3){ const a=pos.a||0; for(let i=0;i<7;i++) part({x:pos.x-Math.cos(a)*24,y:pos.y-Math.sin(a)*24,vx:-Math.cos(a)*rnd(40,140)+rnd(-40,40),vy:-Math.sin(a)*rnd(40,140)+rnd(-40,40),col:'#9aa0ad',size:rnd(5,9),life:rnd(.5,.9),kind:'smoke',drag:2.5}); }
+    Snd.play('shot'+w,{x:pos.x,y:pos.y,vol:id===myId?1:.55});
+    if(id===myId) addShake([.5,.35,3,4,0][w]||0);
+    break; }
+  case 'w':{ if(stale) break; for(let i=0;i<4;i++) part({x:e[1],y:e[2],vx:rnd(-150,150),vy:rnd(-150,150),col:i%2?'#ffe9a8':'#ffffff',size:2,life:rnd(.15,.3),kind:'spark',drag:6});
+    Snd.play('wall',{x:e[1],y:e[2],vol:.6}); break; }
+  case 'h':{ const id=e[1], dmg=e[2], own=e[3]; const v=V(id); v.hitT=now; if(own===myId&&id!==myId) v.markT=now; if(stale) break;
+    const pos=posOf(id); if(!pos) break; const col=colorOf(id);
+    burst(pos.x,pos.y,col,Math.min(14,4+dmg/4),230,4,.55,'fluff');
+    ftext(pos.x+rnd(-8,8),pos.y-32,'-'+dmg,dmg>=40?'#ff6b6b':'#ffffff',dmg>=40?22:16,750);
+    Snd.play('hit',{x:pos.x,y:pos.y,vol:.7});
+    if(id===myId){ addShake(3+dmg/10); flash={col:'#ff2a2a',t0:now,dur:230,a:Math.min(.35,.12+dmg/200)}; }
+    if(own===myId&&id!==myId) Snd.play('hitmark');
+    break; }
+  case 'b':{ if(stale) break; const pos=posOf(e[1]); if(!pos) break;
+    burst(pos.x,pos.y,'#7cf0ff',9,220,2.5,.4,'spark'); ring(pos.x,pos.y,'#7cf0ff',BR+18,260,3);
+    ftext(pos.x,pos.y-32,'BLOK','#7cf0ff',14,600); Snd.play('block',{x:pos.x,y:pos.y,vol:.7}); break; }
+  case 'k':{ const killer=e[1], victim=e[2], w=e[3];
+    feed.push({t0:now,k:killer,v:victim,w,kn:nameOf(killer),kc:colorOf(killer),vn:nameOf(victim),vc:colorOf(victim)}); if(feed.length>5) feed.shift();
+    if(!firstBlood&&killer!==victim){ firstBlood=true; if(!stale) announce={txt:'PRVNÍ KREV!',sub:nameOf(killer),col:'#ff6b6b',t0:now,dur:1600}; }
+    if(stale) break;
+    const pos=posOf(victim), col=colorOf(victim);
+    if(pos){ burst(pos.x,pos.y,col,30,390,5,.9,'fluff'); burst(pos.x,pos.y,'#ffffff',10,270,3,.5,'spark');
+      for(let i=0;i<2;i++) part({x:pos.x,y:pos.y,vx:rnd(-170,170),vy:rnd(-170,170),size:5,life:1.3,kind:'eye',drag:3,vr:rnd(-12,12)});
+      ring(pos.x,pos.y,col,64,430,6); splat(pos.x,pos.y,col,13);
+      Snd.play('splat',{x:pos.x,y:pos.y});
+      const L=listener(); addShake(Math.max(0,4-Math.hypot(pos.x-L.x,pos.y-L.y)/120)); }
+    if(victim===myId){ addShake(8); flash={col:'#ff2a2a',t0:now,dur:520,a:.4};
+      announce={txt:killer===myId?'Odpálil ses!':'Dostal tě '+nameOf(killer),sub:'počkej na další kolo',col:'#ff8a8a',t0:now,dur:2300}; }
+    else if(killer===myId){ myKills.push(now); while(myKills.length&&now-myKills[0]>4000) myKills.shift();
+      const n=myKills.length;
+      if(n>=2){ announce={txt:n===2?'DVOJITÉ ZABITÍ!':n===3?'TROJITÉ ZABITÍ!':'NEZASTAVITELNÝ!',sub:'',col:'#ffd13f',t0:now,dur:1500}; Snd.play('multi'); } }
+    break; }
+  case 'x':{ if(stale) break; const x=e[1],y=e[2],r=e[3];
+    booms.push({x,y,r,t0:now}); scorch(x,y,r*.75);
+    burst(x,y,'#ffb02e',26,r*5,6,.6,'fire'); burst(x,y,'#ff5a1f',14,r*3.5,7,.7,'fire');
+    for(let i=0;i<10;i++) part({x:x+rnd(-r*.3,r*.3),y:y+rnd(-r*.3,r*.3),vx:rnd(-40,40),vy:rnd(-60,10),col:'#6b6f7a',size:rnd(8,14),life:rnd(.8,1.4),kind:'smoke',drag:1.5});
+    ring(x,y,'#ffd08a',r*1.25,380,8);
+    const L=listener(); addShake(Math.max(2,12-Math.hypot(x-L.x,y-L.y)/60)); Snd.play('boom',{x,y}); break; }
+  case 'e':{ if(stale) break; const pos=posOf(e[1]); if(pos) ftext(pos.x,pos.y-36,'došla munice','#aab3c8',12,800); if(e[1]===myId) Snd.play('empty'); break; }
+  }
+}
+
+/* ---------- hlavní smyčka ---------- */
 let lastT=performance.now();
 function loop(){
   const now=performance.now(), dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
   checkOrient();
-  // predikce mé postavy
-  if(predInit && predAlive && !rotateBlock){
+  if(predInit && predAlive && !rotateBlock && phase==='play'){
     const i=readInput(); const mag=Math.hypot(i.ax,i.ay);
     if(mag>0.05){ myAngle=Math.atan2(i.ay,i.ax);
-      const step=SPEED*TICKRATE*dt;
+      const step=SPEED*((myFlags&2)?TURBO:1)*TICKRATE*dt;
       let nx=pred.x+(i.ax/mag)*step; if(!hitsWall(nx,pred.y,BR)) pred.x=Math.max(BR,Math.min(W-BR,nx));
       let ny=pred.y+(i.ay/mag)*step; if(!hitsWall(pred.x,ny,BR)) pred.y=Math.max(BR,Math.min(H-BR,ny));
     }
   }
   if(predInit){ predHist.push({t:now,x:pred.x,y:pred.y}); while(predHist.length&&now-predHist[0].t>1500) predHist.shift(); }
-  render(now);
+  render(now,dt);
   requestAnimationFrame(loop);
 }
-function hitsWall(x,y,r){ for(const w of walls) if(x+r>w.x&&x-r<w.x+w.w&&y+r>w.y&&y-r<w.y+w.h) return true; return false; }
 
-function render(now){
-  // podlaha
-  ctx.fillStyle='#161c2b'; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+function render(now,dt){
+  flushEvents(now);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  shake*=Math.exp(-dt*9);
+  const sx=shake>.3?rnd(-shake,shake):0, sy=shake>.3?rnd(-shake,shake):0;
+  ctx.save(); ctx.translate(sx,sy);
+  ctx.drawImage(floorCv,0,0,W,H);
 
   const rt=now-INTERP;
   let a=null,b=null;
   for(let i=snaps.length-1;i>=0;i--){ if(snaps[i].at<=rt){ a=snaps[i]; b=snaps[i+1]||snaps[i]; break; } }
   if(!a && snaps.length){ a=snaps[0]; b=snaps[0]; }
+  const src=a||{pu:[],bullets:[],mn:[]};
 
-  // powerupy + střely z nejbližšího snapshotu
-  const src=a||{pu:[],bullets:[]};
-  for(const pu of src.pu) drawPowerup(pu[0],pu[1],pu[2],now);
-  for(const w of walls) drawWall(w);
-  if(a){ const dtk=(rt-a.at)/(1000/TICKRATE);
-    for(const bl of a.bullets){ ctx.fillStyle=bl[5]; ctx.beginPath(); ctx.arc(bl[0]+bl[2]*dtk,bl[1]+bl[3]*dtk,bl[4],0,6.28); ctx.fill(); }
-  }
+  for(const pu of src.pu) if(!takenIds.has(pu[3])) drawCrate(pu,now);
+  for(const m of src.mn) drawMine(m,now);
+  ctx.drawImage(wallCv,0,0,W,H);
+  if(a){ const dtk=(rt-a.at)/(1000/TICKRATE); for(const bl of a.bullets) drawBullet(bl,dtk); }
 
-  // hráči
   if(a){
     const span=(b.at-a.at)||1, f=Math.max(0,Math.min(1,(rt-a.at)/span));
     for(const idStr in b.players){
       const id=+idStr, pb=b.players[id], pa=a.players[id]||pb;
-      let x,y,ang,al=pb.al;
-      if(id===myId){ x=pred.x; y=pred.y; ang=myAngle; al=predAlive?1:0; }
+      let x,y,ang,al=pb.al,s=pb;
+      if(id===myId){ x=pred.x; y=pred.y; ang=myAngle; al=predAlive?1:0; s={h:predHp,w:myWeapon,am:myAmmo,fl:myFlags,ft:myFxT}; }
       else { x=lerp(pa.x,pb.x,f); y=lerp(pa.y,pb.y,f); ang=lerpAngle(pa.a,pb.a,f); }
       if(!al) continue;
-      drawBulanek(x,y,ang,colorOf(id),pb.h,nameOf(id),id===myId);
+      drawnPos.set(id,{x,y,a:ang});
+      drawBulanek(id,x,y,ang,colorOf(id),s,nameOf(id),id===myId,now);
     }
   }
+  drawRings(now); drawParts(dt); drawBooms(now); drawTexts(now);
+  ctx.restore();
 
+  drawFlash(now); drawLowHp(now);
   drawTouchControls();
-  drawHUD();
-  if(phase==='count') drawCountdown();
-  if(!connected && document.getElementById('menu').classList.contains('hidden')){
-    ctx.fillStyle='rgba(10,12,18,.5)'; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#fff'; ctx.font='700 26px Baloo 2,sans-serif'; ctx.textAlign='center';
+  drawHUD(now); drawFeed(now); drawBanner(now); drawAnnounce(now);
+  if(phase==='count') drawCountdown(now);
+  if(!connected && inGame){
+    ctx.fillStyle='rgba(10,12,18,.55)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff'; ctx.font='700 26px "Baloo 2",sans-serif'; ctx.textAlign='center';
     ctx.fillText('Spojení přerušeno – zkouším znovu…',W/2,H/2);
   }
 }
-function drawWall(w){ ctx.fillStyle='#2a3450'; ctx.fillRect(w.x,w.y,w.w,w.h);
-  ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(w.x,w.y,w.w,4);
-  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(w.x,w.y+w.h-4,w.w,4); }
-function drawBulanek(x,y,angle,color,hp,name,isMe){
+
+/* ---------- bulánek ---------- */
+const MUZZLE=[BR+13,BR+28,BR+24,BR+34,0];
+function drawWeapon(w,now){
+  switch(w){
+  case 1: // samopal
+    ctx.fillStyle='#232b40'; ctx.fillRect(BR-8,-5,26,10);
+    ctx.fillStyle='#4aa3ff'; ctx.fillRect(BR-8,-5,26,2.5);
+    ctx.fillStyle='#9aa6c4'; ctx.fillRect(BR+18,-2.5,9,5);
+    ctx.fillStyle='#1a2032'; ctx.fillRect(BR+1,5,6,7); break;
+  case 2: // brokovnice
+    ctx.fillStyle='#8a5a2b'; ctx.fillRect(BR-9,-6.5,11,13);
+    ctx.fillStyle='#c4ccdc'; ctx.fillRect(BR-1,-6,24,5); ctx.fillRect(BR-1,1,24,5);
+    ctx.fillStyle='#ff9a3c'; ctx.fillRect(BR+7,-6.5,3,13); break;
+  case 3: // raketomet
+    ctx.fillStyle='#4d5d2c'; rr(BR-16,-7.5,40,15,4); ctx.fill();
+    ctx.fillStyle='#2e3819'; ctx.fillRect(BR-16,-7.5,4,15); ctx.fillRect(BR+17,-7.5,3,15);
+    ctx.fillStyle='rgba(255,255,255,.16)'; ctx.fillRect(BR-12,-7.5,29,3);
+    ctx.fillStyle='#ff4d6d'; ctx.beginPath(); ctx.moveTo(BR+24,-5.5); ctx.lineTo(BR+33,0); ctx.lineTo(BR+24,5.5); ctx.closePath(); ctx.fill(); break;
+  case 4: // mina v ruce
+    ctx.fillStyle='#3a3f4f'; ctx.beginPath(); ctx.arc(BR+8,0,8,0,6.28); ctx.fill();
+    ctx.fillStyle=(Math.floor(now/250)%2)?'#ff3b3b':'#5a1a1a'; ctx.beginPath(); ctx.arc(BR+8,0,2.6,0,6.28); ctx.fill(); break;
+  default: // pistole
+    ctx.fillStyle='#cfd6e6'; ctx.fillRect(BR-3,-3.5,15,7); ctx.fillStyle='#8a93a8'; ctx.fillRect(BR+9,-3.5,3,7);
+  }
+}
+function drawMuzzle(w,ft){
+  const k=1-ft/70, sz=[9,8,15,10,0][w]*(.7+.3*k);
+  ctx.save(); ctx.translate(MUZZLE[w],0); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=k;
+  ctx.fillStyle='#ffd36b'; ctx.beginPath();
+  for(let i=0;i<8;i++){ const an=i*Math.PI/4, r=(i%2?sz*.45:sz)*(i===0?1.6:1); ctx.lineTo(Math.cos(an)*r,Math.sin(an)*r); }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,sz*.35,0,6.28); ctx.fill(); ctx.restore();
+}
+function drawBulanek(id,x,y,ang,color,s,name,isMe,now){
+  const v=V(id), w=s.w|0, fl=s.fl|0;
+  // turbo: stopy za bulánkem
+  if(fl&2&&now-v.trailT>30){ v.trail.push({x,y,t:now}); v.trailT=now; if(v.trail.length>8) v.trail.shift(); }
+  for(const t of v.trail){ const age=(now-t.t)/240; if(age>=1) continue;
+    ctx.globalAlpha=.32*(1-age); ctx.fillStyle=color; ctx.beginPath(); ctx.arc(t.x,t.y,BR*(1-age*.3),0,6.28); ctx.fill(); }
+  ctx.globalAlpha=1;
+  // aura: je vidět, že má něco lepšího
+  if(w>0){ drawGlow(x,y,BR*2.7,WCOL[w],.3+.12*Math.sin(now/170+id));
+    if(now-v.sparkT>150){ v.sparkT=now; part({x:x+rnd(-BR,BR),y:y+rnd(-BR,BR),vx:rnd(-15,15),vy:rnd(-55,-20),col:WCOL[w],size:2.2,life:.6,kind:'star',drag:1}); } }
+  if(fl&2) drawGlow(x,y,BR*2.3,'#ffd13f',.28);
+  // světelný sloup po sebrání
+  const bt=(now-v.beamT)/480;
+  if(bt<1){ ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=(1-bt)*.55;
+    const g=ctx.createLinearGradient(0,y-170,0,y); g.addColorStop(0,withAlpha(v.pickCol,0)); g.addColorStop(1,v.pickCol);
+    ctx.fillStyle=g; const bw=BR*1.7*(1-bt*.5); ctx.fillRect(x-bw/2,y-170,bw,170); ctx.restore(); }
+  const pt=now-v.pickT, ht=now-v.hitT;
+  let scl=1; if(pt<650) scl+=.38*Math.exp(-pt/120)*Math.cos(pt/45);
+  let sqx=1,sqy=1; if(ht<170){ const k=1-ht/170; sqx=1+.18*k; sqy=1-.14*k; }
   ctx.save(); ctx.translate(x,y);
-  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,BR-3,BR*.9,BR*.45,0,0,6.28); ctx.fill();
-  ctx.save(); ctx.rotate(angle); ctx.fillStyle='#cfd6e6'; ctx.fillRect(BR-3,-3.5,14,7); ctx.restore();
-  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(0,0,BR,0,6.28); ctx.fill();
-  ctx.strokeStyle=isMe?'#fff':'rgba(0,0,0,.25)'; ctx.lineWidth=isMe?3:2.5; ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(-3,-4,BR*.55,0,6.28); ctx.fill();
-  const ex=Math.cos(angle),ey=Math.sin(angle),px=-ey,py=ex;
-  for(const s of [-1,1]){ const ox=ex*4+px*s*6, oy=ey*4+py*s*6;
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ox,oy,4.2,0,6.28); ctx.fill();
-    ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(ox+ex*1.6,oy+ey*1.6,2.1,0,6.28); ctx.fill(); }
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,BR-2,BR*.95,BR*.45,0,0,6.28); ctx.fill();
+  // zbraň + zpětný ráz + záblesk
+  const ft=now-v.fireT, firing=v.fireW===w;
+  const recoil=firing&&ft<110?(1-ft/110)*[3,2.5,6,7,0][w]:0;
+  ctx.save(); ctx.rotate(ang); ctx.scale(scl,scl); ctx.translate(-recoil,0); drawWeapon(w,now);
+  if(firing&&ft<70&&w!==4) drawMuzzle(w,ft);
   ctx.restore();
-  const bw=34; ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x-bw/2,y-BR-12,bw,5);
-  ctx.fillStyle=hp>50?'#51d167':hp>25?'#ffd23f':'#ff5147'; ctx.fillRect(x-bw/2,y-BR-12,bw*Math.max(0,Math.min(1,hp/100)),5);
-  if(name){ ctx.fillStyle='rgba(255,255,255,.85)'; ctx.font='600 11px Fredoka,sans-serif'; ctx.textAlign='center';
-    ctx.fillText(name,x,y-BR-18); }
+  // tělo
+  ctx.scale(scl*sqx,scl*sqy);
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(0,0,BR,0,6.28); ctx.fill();
+  ctx.strokeStyle=isMe?'#fff':'rgba(0,0,0,.3)'; ctx.lineWidth=isMe?3:2.5; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.2)'; ctx.beginPath(); ctx.arc(-4,-5,BR*.5,0,6.28); ctx.fill();
+  const ex=Math.cos(ang),ey=Math.sin(ang),px=-ey,py=ex;
+  for(const sd of [-1,1]){ const ox=ex*4+px*sd*6, oy=ey*4+py*sd*6;
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ox,oy,4.4,0,6.28); ctx.fill();
+    ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(ox+ex*1.7,oy+ey*1.7,2.2,0,6.28); ctx.fill(); }
+  if(ht<120){ ctx.globalAlpha=(1-ht/120)*.75; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,BR,0,6.28); ctx.fill(); ctx.globalAlpha=1; }
+  ctx.restore();
+  // štít
+  if(fl&1&&!(s.ft<45&&Math.floor(now/120)%2)){
+    ctx.save(); ctx.globalAlpha=.18; ctx.fillStyle='#4fe3ff'; ctx.beginPath(); ctx.arc(x,y,BR+9,0,6.28); ctx.fill();
+    ctx.globalAlpha=.9; ctx.strokeStyle='#9af3ff'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(x,y,BR+9,now/300,now/300+4.2); ctx.stroke();
+    ctx.globalAlpha=.5; ctx.beginPath(); ctx.arc(x,y,BR+9,now/300+4.6,now/300+5.6); ctx.stroke(); ctx.restore(); }
+  // zásahový křížek (trefil jsem ho)
+  const mt=now-v.markT;
+  if(mt<170){ ctx.save(); ctx.globalAlpha=1-mt/170; ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; const d=BR+6, q=6;
+    ctx.beginPath(); ctx.moveTo(x-d,y-d); ctx.lineTo(x-d+q,y-d+q); ctx.moveTo(x+d,y-d); ctx.lineTo(x+d-q,y-d+q);
+    ctx.moveTo(x-d,y+d); ctx.lineTo(x-d+q,y+d-q); ctx.moveTo(x+d,y+d); ctx.lineTo(x+d-q,y+d-q); ctx.stroke(); ctx.restore(); }
+  // život, munice, jméno
+  const bw=36, by=y-BR-15;
+  ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(x-bw/2-1,by-1,bw+2,7);
+  const hp=s.h; ctx.fillStyle=hp>50?'#51d167':hp>25?'#ffd23f':'#ff5147'; ctx.fillRect(x-bw/2,by,bw*Math.max(0,Math.min(1,hp/100)),5);
+  if(w>0&&s.am>=0){ ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(x-bw/2-1,by+6,bw+2,4); ctx.fillStyle=WCOL[w]; ctx.fillRect(x-bw/2,by+6.5,bw*Math.min(1,s.am/AMMO_MAX[w]),2.5); }
+  if(name){ ctx.font='600 11px Fredoka,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.lineJoin='round';
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(10,12,18,.7)'; ctx.strokeText(name,x,by-5);
+    ctx.fillStyle=isMe?'#fff':'rgba(255,255,255,.88)'; ctx.fillText(name,x,by-5); }
 }
-function drawPowerup(x,y,kind,now){
-  ctx.save(); ctx.translate(x,y); const pulse=1+Math.sin(now/220)*.06; ctx.scale(pulse,pulse);
-  ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(0,3,14,0,6.28); ctx.fill();
-  let col='#fff',label='?'; if(kind==='health'){col='#51d167';label='+';}else if(kind==='mg'){col='#4a8dff';label='MG';}
-  else if(kind==='shotgun'){col='#ff9a3c';label='SG';}else if(kind==='rocket'){col='#ff5147';label='R';}
-  ctx.fillStyle='#11131c'; ctx.beginPath(); ctx.arc(0,0,14,0,6.28); ctx.fill();
-  ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke();
-  ctx.fillStyle=col; ctx.font='700 12px Fredoka,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label,0,1);
-  ctx.restore(); ctx.textBaseline='alphabetic';
+
+/* ---------- ikony, bedny, miny, střely ---------- */
+function drawIcon(kind,x,y,s,col){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.fillStyle=col;
+  switch(kind){
+  case 'health': ctx.fillRect(-2.5,-8,5,16); ctx.fillRect(-8,-2.5,16,5); break;
+  case 'shield': ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(7.5,-6); ctx.lineTo(6.5,2); ctx.quadraticCurveTo(4,7,0,9.5); ctx.quadraticCurveTo(-4,7,-6.5,2); ctx.lineTo(-7.5,-6); ctx.closePath(); ctx.fill(); break;
+  case 'turbo': ctx.beginPath(); ctx.moveTo(2,-10); ctx.lineTo(-6,1.5); ctx.lineTo(-.5,1.5); ctx.lineTo(-2.5,10); ctx.lineTo(6,-2); ctx.lineTo(.5,-2); ctx.closePath(); ctx.fill(); break;
+  case 'rocket': ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(4,-4); ctx.lineTo(-7,-4); ctx.lineTo(-10,-7); ctx.lineTo(-10,7); ctx.lineTo(-7,4); ctx.lineTo(4,4); ctx.closePath(); ctx.fill(); break;
+  case 'shotgun': ctx.fillRect(-10,-4.5,20,3.5); ctx.fillRect(-10,1,20,3.5); ctx.fillRect(-10,-5,5,10); break;
+  case 'mg': ctx.fillRect(-10,-3,16,6); ctx.fillRect(6,-1.5,5,3); ctx.fillRect(-3,3,4,6); ctx.fillRect(-10,0,4,6); break;
+  case 'mines': ctx.beginPath(); ctx.arc(0,0,6.5,0,6.28); ctx.fill();
+    for(let i=0;i<6;i++){ const an=i*Math.PI/3; ctx.fillRect(Math.cos(an)*8-1.5,Math.sin(an)*8-1.5,3,3); }
+    ctx.fillStyle='#2a2f3f'; ctx.beginPath(); ctx.arc(0,0,2.2,0,6.28); ctx.fill(); break;
+  case 'skull': ctx.beginPath(); ctx.arc(0,-1.5,7,0,6.28); ctx.fill(); ctx.fillRect(-4,3,8,5);
+    ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(-2.6,-1.5,1.8,0,6.28); ctx.arc(2.6,-1.5,1.8,0,6.28); ctx.fill(); break;
+  default: ctx.fillRect(-8,-3.5,14,5); ctx.fillRect(-8,-1,5,8);
+  }
+  ctx.restore();
 }
-function drawCountdown(){
-  ctx.fillStyle='rgba(10,12,18,.45)'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='800 120px Baloo 2,sans-serif';
-  ctx.fillText(countdown>0?countdown:'START',W/2,H/2);
+function drawCrate(pu,now){
+  const x=pu[0], y=pu[1], kind=pu[2], id=pu[3]; const P=PICK[kind]||{col:'#fff'};
+  let t0=puSeen.get(id); if(t0===undefined){ t0=now; puSeen.set(id,t0); }
+  const t=(now-t0)/450; let dy=0, sc=1;
+  if(t<1){ const e=1-Math.pow(1-t,3); dy=-(1-e)*70; sc=1+.4*(1-e); }
+  else if(!landed.has(id)){ landed.add(id); ring(x,y+4,P.col,36,340,3); burst(x,y+10,'#c9d1e6',6,90,2.5,.4,'dot'); }
+  const bob=t>=1?Math.sin(now/320+id)*2:0;
+  ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x,y+14,13*(t<1?.5+.5*t:1),5,0,0,6.28); ctx.fill();
+  drawGlow(x,y+dy+bob,36,P.col,.35+.12*Math.sin(now/260+id));
+  ctx.save(); ctx.translate(x,y+dy+bob); ctx.scale(sc,sc);
+  ctx.fillStyle='#262b3a'; rr(-13,-13,26,26,6); ctx.fill();
+  ctx.lineWidth=2.5; ctx.strokeStyle=P.col; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.08)'; rr(-13,-13,26,9,6); ctx.fill();
+  drawIcon(kind,0,0,1,P.col);
+  ctx.restore();
+}
+function drawMine(m,now){
+  const x=m[0], y=m[1], own=m[2], armed=m[3]; const col=colorOf(own);
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(1,4,10,5,0,0,6.28); ctx.fill();
+  ctx.fillStyle='#4a5064'; for(let i=0;i<6;i++){ const an=i*Math.PI/3; ctx.beginPath(); ctx.arc(Math.cos(an)*9.5,Math.sin(an)*9.5,2.2,0,6.28); ctx.fill(); }
+  ctx.fillStyle='#363b4b'; ctx.beginPath(); ctx.arc(0,0,9,0,6.28); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,6,0,6.28); ctx.stroke();
+  const on=armed?Math.floor(now/300)%2===0:true;
+  ctx.fillStyle=armed?(on?'#ff3b3b':'#5a1a1a'):'#ffd13f'; ctx.beginPath(); ctx.arc(0,0,2.6,0,6.28); ctx.fill();
+  if(armed&&on) drawGlow(0,0,14,'#ff3b3b',.55);
+  ctx.restore();
+}
+function drawBullet(bl,dtk){
+  const x=bl[0]+bl[2]*dtk, y=bl[1]+bl[3]*dtk, w=bl[6]|0, col=bl[5];
+  if(w===3){ const an=Math.atan2(bl[3],bl[2]);
+    if(Math.random()<.7) part({x:x-Math.cos(an)*12,y:y-Math.sin(an)*12,vx:rnd(-20,20),vy:rnd(-20,20),col:'#8a8f9c',size:rnd(4,7),life:rnd(.4,.7),kind:'smoke',drag:2});
+    drawGlow(x,y,24,'#ff8a2a',.5);
+    ctx.save(); ctx.translate(x,y); ctx.rotate(an);
+    ctx.fillStyle=Math.random()<.5?'#ffd36b':'#ff8a2a'; ctx.beginPath(); ctx.moveTo(-8,-3); ctx.lineTo(-16-rnd(0,6),0); ctx.lineTo(-8,3); ctx.fill();
+    ctx.fillStyle='#d9dee9'; ctx.beginPath(); ctx.ellipse(0,0,9,3.6,0,0,6.28); ctx.fill();
+    ctx.fillStyle='#ff4d6d'; ctx.beginPath(); ctx.moveTo(6,-3.2); ctx.lineTo(12,0); ctx.lineTo(6,3.2); ctx.fill();
+    ctx.restore(); return; }
+  const k=w===1?1.7:1.2;
+  ctx.save(); ctx.lineCap='round';
+  ctx.globalAlpha=.5; ctx.strokeStyle=col; ctx.lineWidth=bl[4]*1.4;
+  ctx.beginPath(); ctx.moveTo(x-bl[2]*k,y-bl[3]*k); ctx.lineTo(x,y); ctx.stroke();
+  ctx.globalAlpha=1; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,bl[4]*.75,0,6.28); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+}
+
+/* ---------- částice, kruhy, výbuchy, texty ---------- */
+function drawParts(dt){
+  for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.t+=dt; if(p.t>=p.life){ parts.splice(i,1); continue; }
+    const k=Math.exp(-p.drag*dt); p.vx*=k; p.vy*=k; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt;
+    const f=p.t/p.life, al=1-f;
+    switch(p.kind){
+    case 'spark': ctx.globalAlpha=al; ctx.strokeStyle=p.col; ctx.lineWidth=p.size*.7; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-p.vx*.03,p.y-p.vy*.03); ctx.stroke(); break;
+    case 'smoke': ctx.globalAlpha=al*.45; ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(1+f*1.5),0,6.28); ctx.fill(); break;
+    case 'fire': ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=al; ctx.fillStyle=f<.3?'#fff1b0':f<.6?p.col:'#c2410c';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(1-f*.5),0,6.28); ctx.fill(); ctx.globalCompositeOperation='source-over'; break;
+    case 'star': { ctx.globalAlpha=al; ctx.fillStyle=p.col; const s=p.size*(1-f*.4); ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.beginPath();
+      ctx.moveTo(0,-s*2); ctx.lineTo(s*.5,-s*.5); ctx.lineTo(s*2,0); ctx.lineTo(s*.5,s*.5); ctx.lineTo(0,s*2); ctx.lineTo(-s*.5,s*.5); ctx.lineTo(-s*2,0); ctx.lineTo(-s*.5,-s*.5);
+      ctx.closePath(); ctx.fill(); ctx.restore(); break; }
+    case 'conf': ctx.globalAlpha=al; ctx.fillStyle=p.col; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillRect(-p.size,-p.size*.5,p.size*2,p.size); ctx.restore(); break;
+    case 'eye': ctx.globalAlpha=Math.min(1,al*2); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,6.28); ctx.fill();
+      ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(p.x+Math.cos(p.rot)*1.8,p.y+Math.sin(p.rot)*1.8,p.size*.5,0,6.28); ctx.fill(); break;
+    default: ctx.globalAlpha=al*(p.kind==='fluff'?.9:1); ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(p.kind==='fluff'?(1-f*.5):1),0,6.28); ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+}
+function drawRings(now){
+  for(let i=rings.length-1;i>=0;i--){ const r=rings[i]; const t=(now-r.t0)/r.dur; if(t<0) continue; if(t>=1){ rings.splice(i,1); continue; }
+    const e=1-Math.pow(1-t,3); ctx.globalAlpha=1-t; ctx.strokeStyle=r.col; ctx.lineWidth=r.w*(1-t)+.5;
+    ctx.beginPath(); ctx.arc(r.x,r.y,4+(r.r1-4)*e,0,6.28); ctx.stroke(); }
+  ctx.globalAlpha=1;
+}
+function drawBooms(now){
+  for(let i=booms.length-1;i>=0;i--){ const b=booms[i]; const t=(now-b.t0)/430; if(t>=1){ booms.splice(i,1); continue; }
+    const e=1-Math.pow(1-t,2);
+    drawGlow(b.x,b.y,b.r*(.6+.9*e),'#ff9a3c',(1-t)*.95);
+    drawGlow(b.x,b.y,b.r*.55*(1-t*.5),'#fff3c4',1-t); }
+}
+function drawTexts(now){
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  for(let i=texts.length-1;i>=0;i--){ const t=texts[i]; const f=(now-t.t0)/t.dur; if(f>=1){ texts.splice(i,1); continue; }
+    const scale=f<.12?.6+(f/.12)*.6:f<.25?1.2-((f-.12)/.13)*.2:1;
+    ctx.globalAlpha=f>.7?(1-f)/.3:1;
+    ctx.font='800 '+Math.round(t.size*scale)+'px "Baloo 2",sans-serif';
+    ctx.lineWidth=4; ctx.strokeStyle='rgba(10,12,18,.85)'; ctx.strokeText(t.txt,t.x,t.y-f*36);
+    ctx.fillStyle=t.col; ctx.fillText(t.txt,t.x,t.y-f*36); }
+  ctx.globalAlpha=1; ctx.textBaseline='alphabetic';
+}
+function drawFlash(now){ if(!flash) return; const t=(now-flash.t0)/flash.dur; if(t>=1){ flash=null; return; }
+  ctx.globalAlpha=flash.a*(1-t); ctx.fillStyle=flash.col; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; }
+function drawLowHp(now){ if(!(predInit&&predAlive&&predHp<35&&phase==='play')) return;
+  const a=.22+.14*Math.sin(now/220);
+  const g=ctx.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,W*.62);
+  g.addColorStop(0,'rgba(255,30,30,0)'); g.addColorStop(1,'rgba(255,30,30,'+a.toFixed(3)+')'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+
+/* ---------- HUD ---------- */
+function drawCountdown(now){
+  ctx.fillStyle='rgba(10,12,18,.42)'; ctx.fillRect(0,0,W,H);
+  const t=(now-cdT)/1000, sc=t<.18?1.8-(t/.18)*.8:1;
+  const txt=countdown>0?String(countdown):'START';
+  ctx.save(); ctx.translate(W/2,H/2); ctx.scale(sc,sc); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  ctx.font='800 120px "Baloo 2",sans-serif'; ctx.lineWidth=10; ctx.strokeStyle='rgba(10,12,18,.8)'; ctx.strokeText(txt,0,0);
+  ctx.fillStyle=countdown>0?'#fff':'#ffd13f'; ctx.fillText(txt,0,0); ctx.restore();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
   if(mapName){ ctx.font='700 28px Fredoka,sans-serif'; ctx.fillStyle='#ffd13f'; ctx.fillText('Mapa: '+mapName,W/2,H/2+92); }
+  ctx.font='600 15px Fredoka,sans-serif'; ctx.fillStyle='#cfd6e6'; ctx.fillText('Sbírej bedny: zbraně, štít, turbo, lékárny',W/2,H/2+126);
   ctx.textBaseline='alphabetic';
 }
-function drawHUD(){
-  // skóre nahoře
-  const arr=[...roster.values()].sort((a,b)=>b.wins-a.wins).slice(0,8);
+function drawHUD(now){
+  if(!inGame||phase==='lobby') return;
+  const arr=[...roster.values()].sort((a,b)=>b.wins-a.wins||b.kills-a.kills).slice(0,7);
+  const top=arr.length&&arr[0].wins>0?arr[0]:null;
   let x=10; ctx.textAlign='left'; ctx.textBaseline='middle';
   for(const p of arr){
     ctx.fillStyle='rgba(13,16,24,.78)'; rr(x,8,120,30,8); ctx.fill();
     ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(x+15,23,7,0,6.28); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.font='700 12px Baloo 2,sans-serif';
+    if(p===top){ ctx.fillStyle='#ffd13f'; ctx.beginPath(); ctx.moveTo(x+8,14); ctx.lineTo(x+10,8); ctx.lineTo(x+13,12); ctx.lineTo(x+15,6); ctx.lineTo(x+17,12); ctx.lineTo(x+20,8); ctx.lineTo(x+22,14); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle='#fff'; ctx.font='700 12px "Baloo 2",sans-serif';
     ctx.fillText((p.name.length>9?p.name.slice(0,9):p.name)+' ×'+p.wins,x+27,23);
-    x+=126; if(x>W-130) break;
+    x+=126; if(x>W-176) break;
+  }
+  if(phase==='play'&&timeLeft>=0&&timeLeft<=15){ // poslední vteřiny kola
+    const pulse=timeLeft<=5?1+.08*Math.sin(now/90):1;
+    ctx.save(); ctx.translate(W/2,62); ctx.scale(pulse,pulse); ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(13,16,24,.82)'; rr(-92,-15,184,30,10); ctx.fill(); ctx.strokeStyle=timeLeft<=5?'#ff5d54':'#ffd13f'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle=timeLeft<=5?'#ff8a8a':'#ffd13f'; ctx.font='800 16px "Baloo 2",sans-serif'; ctx.fillText('Konec kola za '+timeLeft+' s',0,1); ctx.restore(); }
+  if(predInit && !predAlive && (phase==='play'||phase==='count')){
+    ctx.fillStyle='rgba(0,0,0,.55)'; rr(W/2-100,H-44,200,32,8); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='600 14px Fredoka,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Čekáš na další kolo…',W/2,H-28);
   }
   ctx.textBaseline='alphabetic';
-  // spektátor / latence
-  if(predInit && !predAlive && (phase==='play'||phase==='count')){
-    ctx.fillStyle='rgba(0,0,0,.5)'; rr(W/2-90,H-42,180,30,8); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.font='600 14px Fredoka,sans-serif'; ctx.textAlign='center';
-    ctx.fillText('Čekáš na další kolo…',W/2,H-22);
-  }
   ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='600 11px Fredoka,sans-serif'; ctx.textAlign='right';
-  ctx.fillText((latency?latency+' ms':'')+'  Esc = odchod',W-10,H-10); ctx.textAlign='left';
+  ctx.fillText((latency?latency+' ms · ':'')+'M = zvuk · Esc = odchod',W-10,H-10); ctx.textAlign='left';
+  drawWeaponPanel(now);
+}
+function drawWeaponPanel(now){
+  if(!(predInit&&predAlive&&(phase==='play'||phase==='count'))) return;
+  const w=myWeapon|0, col=WCOL[w], wd=214, ht=52;
+  const x=usedTouch?W/2-wd/2:12, y=H-ht-12;
+  const pt=now-V(myId).pickT, pop=pt<400?1+.12*Math.exp(-pt/90):1;
+  ctx.save(); ctx.translate(x+wd/2,y+ht/2); ctx.scale(pop,pop); ctx.translate(-wd/2,-ht/2);
+  if(w>0) drawGlow(26,ht/2,40,col,.35);
+  ctx.fillStyle='rgba(13,16,24,.84)'; rr(0,0,wd,ht,12); ctx.fill();
+  ctx.strokeStyle=w>0?col:'rgba(255,255,255,.15)'; ctx.lineWidth=2; ctx.stroke();
+  drawIcon(WKEY[w],28,ht/2,1.5,col);
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillStyle='#fff'; ctx.font='800 17px "Baloo 2",sans-serif'; ctx.fillText(WNAME[w].toUpperCase(),56,17);
+  ctx.font='600 13px Fredoka,sans-serif'; ctx.fillStyle='#aab3c8';
+  if(myAmmo<0) ctx.fillText('∞ nábojů',56,36);
+  else { ctx.fillText(myAmmo+' / '+AMMO_MAX[w],56,36);
+    ctx.fillStyle='rgba(255,255,255,.12)'; rr(118,32,84,7,3.5); ctx.fill();
+    ctx.fillStyle=col; rr(118,32,Math.max(4,84*Math.min(1,myAmmo/AMMO_MAX[w])),7,3.5); ctx.fill(); }
+  ctx.restore();
+  let bx=x+wd+8; const secs=Math.ceil(myFxT/TICKRATE);
+  for(const [bit,kind,lbl] of [[1,'shield','ŠTÍT'],[2,'turbo','TURBO']]){
+    if(!(myFlags&bit)) continue; const c=PICK[kind].col;
+    ctx.fillStyle='rgba(13,16,24,.84)'; rr(bx,y+8,96,36,10); ctx.fill(); ctx.strokeStyle=c; ctx.lineWidth=2; ctx.stroke();
+    drawIcon(kind,bx+18,y+26,1,c);
+    ctx.fillStyle='#fff'; ctx.font='800 14px "Baloo 2",sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(lbl+' '+secs+' s',bx+32,y+27); bx+=104; }
+  ctx.textBaseline='alphabetic';
+}
+function drawFeed(now){
+  if(!inGame||phase==='lobby') return;
+  for(let i=feed.length-1;i>=0;i--) if(now-feed[i].t0>6000) feed.splice(i,1);
+  let y=58; ctx.textBaseline='middle'; ctx.textAlign='left';
+  for(const f of feed){
+    const age=now-f.t0, al=age>5200?(6000-age)/800:1, slide=age<180?(1-age/180)*40:0;
+    const self=f.k===f.v;
+    ctx.font='700 13px Fredoka,sans-serif';
+    const wk=self?0:ctx.measureText(f.kn).width+8, wv=ctx.measureText(f.vn).width;
+    const total=wk+30+wv+20, x=W-12-total+slide;
+    ctx.globalAlpha=al; ctx.fillStyle=(f.k===myId||f.v===myId)?'rgba(70,52,10,.88)':'rgba(13,16,24,.8)'; rr(x,y-12,total,24,8); ctx.fill();
+    let cx=x+10;
+    if(!self){ ctx.fillStyle=f.kc; ctx.fillText(f.kn,cx,y+1); cx+=wk; }
+    drawIcon(self?'skull':(WKEY[f.w]||'pistol'),cx+10,y,.8,'#e9edf6'); cx+=26;
+    ctx.fillStyle=f.vc; ctx.fillText(f.vn,cx,y+1);
+    y+=28;
+  }
+  ctx.globalAlpha=1; ctx.textBaseline='alphabetic';
+}
+function drawBanner(now){
+  if(!banner) return; const t=(now-banner.t0)/1800; if(t>=1){ banner=null; return; }
+  const P=PICK[banner.kind]; if(!P){ banner=null; return; }
+  const e=1-Math.pow(1-Math.min(1,t/.12),3), al=t>.75?(1-t)/.25:1, y=H-150+(1-e)*30;
+  ctx.save(); ctx.globalAlpha=al; ctx.textBaseline='middle'; ctx.textAlign='left';
+  ctx.font='800 30px "Baloo 2",sans-serif'; const tw=ctx.measureText(P.label).width;
+  ctx.font='600 14px Fredoka,sans-serif'; const sw=ctx.measureText(P.sub).width;
+  const wd=Math.max(tw,sw)+92, x=W/2-wd/2;
+  drawGlow(W/2,y,wd*.6,P.col,.25);
+  ctx.fillStyle='rgba(13,16,24,.9)'; rr(x,y-32,wd,64,16); ctx.fill(); ctx.strokeStyle=P.col; ctx.lineWidth=2.5; ctx.stroke();
+  drawIcon(banner.kind,x+36,y,1.8,P.col);
+  ctx.fillStyle=P.col; ctx.font='800 30px "Baloo 2",sans-serif'; ctx.fillText(P.label,x+66,y-7);
+  ctx.fillStyle='#cfd6e6'; ctx.font='600 14px Fredoka,sans-serif'; ctx.fillText(P.sub,x+67,y+17);
+  ctx.restore();
+}
+function drawAnnounce(now){
+  if(!announce) return; const t=(now-announce.t0)/announce.dur; if(t>=1){ announce=null; return; }
+  const sc=t<.12?.5+(t/.12)*.7:t<.2?1.2-((t-.12)/.08)*.2:1, al=t>.8?(1-t)/.2:1;
+  ctx.save(); ctx.globalAlpha=al; ctx.translate(W/2,H*.3); ctx.scale(sc,sc);
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  ctx.font='800 52px "Baloo 2",sans-serif'; ctx.lineWidth=8; ctx.strokeStyle='rgba(10,12,18,.9)';
+  ctx.strokeText(announce.txt,0,0); ctx.fillStyle=announce.col; ctx.fillText(announce.txt,0,0);
+  if(announce.sub){ ctx.font='700 20px Fredoka,sans-serif'; ctx.lineWidth=5; ctx.strokeText(announce.sub,0,40); ctx.fillStyle='#fff'; ctx.fillText(announce.sub,0,40); }
+  ctx.restore();
 }
 function drawTouchControls(){
-  if(!usedTouch) return; if(!(phase==='play'||phase==='count')) return;
+  if(!usedTouch||!inGame) return; if(!(phase==='play'||phase==='count')) return;
   const active=touch.joyId!==null; const bx=active?touch.ox:130,by=active?touch.oy:H-130,kx=active?touch.kx:bx,ky=active?touch.ky:by;
   ctx.globalAlpha=.16; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(bx,by,JOY_R,0,6.28); ctx.fill();
   ctx.globalAlpha=active?.6:.4; ctx.beginPath(); ctx.arc(kx,ky,36,0,6.28); ctx.fill();
   const fbx=W-120,fby=H-120,pr=touch.fireIds.size>0;
   ctx.globalAlpha=pr?.9:.4; ctx.fillStyle=pr?'#ff5147':'#fff'; ctx.beginPath(); ctx.arc(fbx,fby,66,0,6.28); ctx.fill();
-  ctx.globalAlpha=1; ctx.fillStyle=pr?'#fff':'#14131b'; ctx.font='800 24px Baloo 2,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.globalAlpha=1; ctx.fillStyle=pr?'#fff':'#14131b'; ctx.font='800 24px "Baloo 2",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText('PAL',fbx,fby); ctx.textBaseline='alphabetic'; ctx.globalAlpha=1;
 }
-function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
-// předvyplň jméno
-document.getElementById('name').value = 'Hráč'+Math.floor(Math.random()*900+100);
+/* ---------- start ---------- */
+(function initMenu(){
+  let saved=''; try{ saved=localStorage.getItem('bulanci-jmeno')||''; }catch{}
+  nameIn.value=saved||('Hráč'+Math.floor(Math.random()*900+100));
+  const c=normCode(new URLSearchParams(location.search).get('hra'));
+  if(c){ codeIn.value=c; setStatus('Kamarád tě zve do hry '+c+' – zkontroluj jméno a klikni na Připojit.');
+    $('joinBtn').classList.remove('ghost'); $('createBtn').classList.add('ghost'); }
+})();
 requestAnimationFrame(loop);
 </script>
 </body>

@@ -1,17 +1,37 @@
 # Bulánci Online
 
-Online multiplayer verze hry Bulánci pro **až 20 hráčů**. Jeden malý Node.js
-server řídí celou hru (autoritativně) a zároveň servíruje i samotnou hru, takže
-stačí **jeden deploy** a všichni se připojí na jednu adresu.
+Online multiplayerová střílečka pro **až 20 hráčů** v prohlížeči (fanouškovská hra
+inspirovaná českými Bulánky). Jeden malý Node.js server řídí celou hru
+(autoritativně) a zároveň servíruje i samotného klienta, takže stačí **jeden
+deploy** a všichni se připojí na jednu adresu.
 
-- Míříš tam, kam jdeš; palba střílí ve směru pohybu.
-- Ovládání: klávesnice (WASD/šipky), gamepad, nebo dotyk na telefonu.
-- Zbraně z beden (samopal, brokovnice, raketomet), lékárny, kola na počet výher.
-- Volitelní **boti** doplní arénu, když je málo lidí.
+## Jak se hraje
+
+1. **Hostitel** otevře hru, zadá jméno a klikne na **Založit novou hru**.
+   Dostane **kód hry** (např. `K7PXQ`) a odkaz `…/?hra=K7PXQ`.
+2. Kamarádi otevřou odkaz (kód se předvyplní), nebo kód zadají ručně, a kliknou
+   na **Připojit**.
+3. V **lobby** hostitel vidí, kdo se připojil, může **přidat / odebrat boty**,
+   **vyhodit hráče** (potvrzuje se druhým kliknutím) a zvolit **počet výher do
+   konce zápasu** (3 / 5 / 7 / 10).
+4. Hra začne, **až ji hostitel spustí**. Kdo přijde během zápasu, naskočí od
+   dalšího kola. Po konci zápasu se všichni vrátí do lobby a čeká se zase na
+   hostitele. Když hostitel odejde, hostitelem se stane další hráč.
+
+**Ve hře:** poslední přeživší bere kolo. Každé kolo je na jiné z 5 map. Kolo má
+pojistku 90 s; když nikdo nevyhraje, je remíza.
+
+**Bedny:** samopal, brokovnice, raketomet, miny (pokládají se za sebe), lékárna,
+štít (6 s nezranitelnost) a turbo (7 s rychlost ×1,5). Kdo sebere zbraň, má kolem
+sebe barevnou auru, zbraň je vidět v ruce a pod životy má ukazatel munice.
+
+**Ovládání:** WASD nebo šipky = pohyb a míření, mezerník nebo Enter = palba,
+gamepad funguje taky. Na telefonu: levá půlka = pohyb, pravá = palba.
+**M** = zvuk, **Esc** = odchod (s potvrzením).
 
 ---
 
-## 1) Vyzkoušení na svém počítači (lokálně)
+## Spuštění na svém počítači
 
 Potřebuješ [Node.js](https://nodejs.org) 18+.
 
@@ -20,80 +40,44 @@ npm install
 npm start
 ```
 
-Otevři `http://localhost:3000`. Chceš-li si vyzkoušet víc hráčů, otevři víc
-oken/karet nebo se z jiného zařízení ve stejné síti připoj na
-`http://ADRESA-POCITACE:3000`.
+Otevři `http://localhost:3000`. Pro víc hráčů otevři víc oken, nebo se z jiného
+zařízení ve stejné síti připoj na `http://ADRESA-POCITACE:3000`.
 
----
+## Nasazení online (Render)
 
-## 2) Nasazení online (aby se připojili lidé odkudkoli)
+Repozitář obsahuje `render.yaml`, takže stačí na [render.com](https://render.com)
+zvolit **New → Blueprint** a vybrat tento repozitář. Služba se založí jako free
+web service ve Frankfurtu (`npm install`, `npm start`).
 
-Nejjednodušší je **Render** (v roce 2026 má reálný free tier bez platební karty;
-free služba ale po ~15 min nečinnosti „usne" a první probuzení trvá ~30–50 s –
-počítej s tím, že první hráč chvíli čeká). Postup:
-
-1. Nahraj tuto složku do nového repozitáře na GitHub.
-2. Na [render.com](https://render.com) → **New → Web Service** → připoj repozitář.
-3. Nastav:
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-4. Deploy. Render ti dá adresu typu `https://neco.onrender.com` – tu pošli hráčům.
-   Port si Render nastaví sám (server čte `process.env.PORT`).
-
-> Chceš server, který nikdy neusne? Podívej se na **Koyeb** nebo **Northflank**
-> (mají trvale běžící free službu, ale vyžadují kartu k ověření). **Fly.io** ani
-> **Railway** už trvalý free tier nemají. **Vercel/Netlify se NEHODÍ** – neudrží
-> trvalé WebSocket spojení.
-
-### Varianta: klient na GitHub Pages, server jinde
-GitHub Pages umí jen statické soubory (žádný server), takže tam nahraješ jen
-`public/index.html`, a v menu hry do pole **Adresa serveru** zadáš adresu svého
-serveru (např. `wss://neco.onrender.com`). Server pak stačí jen na WebSocket.
-Pro většinu lidí je ale jednodušší varianta 2 (vše z jedné adresy).
-
----
+Free služba po 15 minutách bez provozu usne a první načtení pak chvíli trvá.
+Během hraní neusne, protože aktivitu drží WebSocket zprávy.
 
 ## Nastavení (proměnné prostředí)
 
 | Proměnná | Výchozí | Význam |
 |---|---|---|
-| `PORT`   | 3000 | Port serveru (hosting nastaví sám). |
-| `ROUNDS` | 5    | Kolik kol je potřeba k výhře zápasu. |
-| `BOTS`   | 4    | Doplnit boty do tolika bojovníků (0 = bez botů). |
+| `PORT`          | 3000 | Port serveru (hosting nastaví sám). |
+| `ROUNDS`        | 5    | Výchozí počet výher do konce zápasu (hostitel ho v lobby může změnit). |
+| `ROUND_SECONDS` | 90   | Nejdelší délka jednoho kola; pak remíza. |
 
-Kód místnosti: v menu lze zadat „kód místnosti". Kdo má stejný kód, hraje spolu;
-různé kódy = oddělené zápasy na stejném serveru.
+## Bezpečnost
 
----
-
-## Ovládání
-
-- **Klávesnice:** WASD + mezerník, nebo šipky + Enter.
-- **Gamepad:** páčka/kříž + tlačítko A.
-- **Telefon:** levá půlka displeje = pohyb a míření, pravá = palba.
-- **Esc** = odejít zpět do menu.
-
----
-
-## Poctivé poznámky (co čekat)
-
-- **Toto je funkční základ, ne odladěná esportová netcode.** Server je
-  autoritativní, klient plynule interpoluje ostatní hráče a předvídá pohyb té
-  vlastní postavy. Při vyšší latenci se může projevit drobné „cukání" nebo
-  zpoždění palby.
-- **20 hráčů v rychlé akci je náročné.** Při špatném připojení některých hráčů
-  nebo slabém free serveru může hra zadrhávat. Když to bude potřeba, dá se ladit
-  (frekvence odesílání, interpolační zpoždění, velikost snímků) – rád pomůžu.
-- Live provoz jsem netestoval v reálné síti mezi zařízeními; ověřená je logika
-  serveru (připojení, boti, kola, zápas, zásahy) automatickým testem.
+- Server posílá jen soubory ze složky `public` (whitelist načtený při startu).
+- Jména hráčů se čistí od HTML a řídicích znaků a zobrazují se jen jako text;
+  stránka má CSP, která pustí jen vlastní skript.
+- Limity proti zahlcení: max 1 KB na zprávu, limit zpráv za sekundu, max 150
+  spojení, max 25 rozehraných her, max 8 spojení z jedné IP, odpojení bez vstupu
+  do hry po 10 s, odmítnutí připojení z cizích webů.
+- Akce hostitele (start, boti, vyhazování, počet kol) ověřuje server.
+- **Kód hry není heslo.** Kdo ho zná, připojí se; hostitel ho může vyhodit, ale
+  vyhozený hráč se může s kódem připojit znovu.
 
 ## Struktura
 
 ```
-bulanci-online/
-├── server.js          # herní server (HTTP + WebSocket + simulace)
+├── server.js          # herní server (HTTP + WebSocket + simulace, lobby, boti)
 ├── package.json
-├── public/
-│   └── index.html     # klient (hra v prohlížeči)
-└── README.md
+├── render.yaml        # nasazení na Render (Blueprint)
+└── public/
+    └── index.html     # klient (hra v prohlížeči, grafika a zvuky kreslené kódem)
 ```
