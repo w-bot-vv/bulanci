@@ -94,6 +94,21 @@
   .seg button.on{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
   .hint{font-size:13px;color:var(--muted);line-height:1.45}
   .linkIn{width:100%;background:#161b29;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:12px}
+  .menuGrid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start}
+  @media (max-width:760px){.menuGrid{grid-template-columns:1fr}}
+  .menuGrid .card{max-width:none}
+  .pickHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:4px}
+  .pick{display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;border:2px solid transparent;border-radius:12px;
+    padding:4px 1px;cursor:pointer;color:var(--ink);font-family:inherit;font-size:11.5px;font-weight:600;line-height:1.15}
+  .pick img{width:48px;height:48px;border-radius:50%;background:#2c3550;display:block}
+  .pick:hover{background:var(--panel-2)}
+  .pick.on{border-color:var(--primary);background:#2a2610}
+  .pick.on img{box-shadow:0 0 0 3px var(--primary)}
+  .pick.taken{opacity:.3;cursor:not-allowed}
+  .pick span{max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .linkBtn{background:none;border:none;color:var(--muted);text-decoration:underline;font-family:inherit;font-size:12.5px;cursor:pointer;padding:8px 0 0}
+  .lrow .av{width:30px;height:30px;border-radius:50%;flex:0 0 auto;border:2px solid #fff;background:#2c3550}
   #muteBtn{position:absolute;top:10px;right:10px;z-index:6;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
     background:rgba(13,16,24,.82);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 </style>
@@ -114,18 +129,24 @@
         </svg>
         <h1>BULÁNCI ONLINE<small>Založ hru, pozvi kámoše · poslední přeživší bere kolo</small></h1>
       </div>
-      <div class="card">
-        <div class="field">
-          <label for="name">Tvoje jméno</label>
-          <input id="name" maxlength="16" placeholder="Hráč" autocomplete="off">
+      <div class="menuGrid">
+        <div class="card">
+          <div class="pickHead"><b>Za koho hraješ?</b><span class="hint" id="pickSel">Vyber si postavu</span></div>
+          <div id="picker" class="picker" role="listbox" aria-label="Výběr postavy"></div>
+          <button id="nickToggle" class="linkBtn" type="button">nebo si napiš vlastní přezdívku</button>
+          <div id="nickBox" class="hidden" style="margin-top:8px">
+            <div class="field" style="margin:0"><input id="name" maxlength="16" placeholder="Tvoje přezdívka" autocomplete="off" aria-label="Vlastní přezdívka"></div>
+          </div>
         </div>
-        <button id="createBtn" class="btn wide" type="button">Založit novou hru</button>
-        <div class="or">nebo se připoj ke hře kamaráda</div>
-        <div class="row">
-          <input id="code" maxlength="8" placeholder="KÓD" autocomplete="off" aria-label="Kód hry">
-          <button id="joinBtn" class="btn ghost" type="button">Připojit</button>
+        <div class="card">
+          <button id="createBtn" class="btn wide" type="button">Založit novou hru</button>
+          <div class="or">nebo se připoj ke hře kamaráda</div>
+          <div class="row">
+            <input id="code" maxlength="8" placeholder="KÓD" autocomplete="off" aria-label="Kód hry">
+            <button id="joinBtn" class="btn ghost" type="button">Připojit</button>
+          </div>
+          <div id="status" class="status" role="status"></div>
         </div>
-        <div id="status" class="status" role="status"></div>
       </div>
       <div class="foot">
         Hostitel založí hru a pošle kamarádům kód nebo odkaz. Hra začne, až ji spustí.<br>
@@ -226,6 +247,16 @@ const PICK={
   turbo:{label:'TURBO',col:'#ffd13f',snd:'turbo',sub:'7 s rychlost ×1,5'},
 };
 
+/* ---------- postavy (naštvané obličeje týmu) ---------- */
+let FACES=[]; const faceImg=new Map();
+const imgOk=im=>im&&im.complete&&im.naturalWidth>0;
+function faceOf(id){ const r=roster.get(id); return r&&r.face?faceImg.get(r.face):null; }
+function pickLabel(f){ // stejná křestní jména: iniciála příjmení, a když se shoduje i ta, celé příjmení
+  const s=f.short.split(' '); if(s.length<2) return f.short;
+  const ini=s[0]+' '+s[1][0]+'.';
+  const clash=FACES.some(o=>o!==f&&o.short.split(' ').length>1&&o.short.split(' ')[0]===s[0]&&o.short.split(' ')[1][0]===s[1][0]);
+  return clash?f.short:ini; }
+
 /* ---------- zvuk (syntetizovaný, žádné soubory) ---------- */
 const Snd=(()=>{
   let ac=null,out=null,nbuf=null,muted=false,live=0; const last={};
@@ -241,6 +272,14 @@ const Snd=(()=>{
   function tone(o){ const t=ac.currentTime+(o.delay||0); const osc=ac.createOscillator(), g=ac.createGain();
     osc.type=o.type||'sine'; osc.frequency.setValueAtTime(o.f,t); if(o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2,t+o.d);
     env(g,t,o.vol,o.d); osc.connect(g); g.connect(dest(o.pan)); osc.start(t); osc.stop(t+o.d+.03);
+    live++; osc.onended=()=>{ live--; try{g.disconnect();}catch{} }; }
+  function brass(o){ // „trombon“: pila přes dolní propust, volitelné vibrato
+    const t=ac.currentTime+(o.delay||0); const osc=ac.createOscillator(), f=ac.createBiquadFilter(), g=ac.createGain();
+    osc.type='sawtooth'; osc.frequency.setValueAtTime(o.f,t); if(o.f2) osc.frequency.linearRampToValueAtTime(o.f2,t+o.d);
+    if(o.vib){ const l=ac.createOscillator(), lg=ac.createGain(); l.frequency.value=5.5; lg.gain.value=o.vib; l.connect(lg); lg.connect(osc.frequency); l.start(t); l.stop(t+o.d+.05); }
+    f.type='lowpass'; f.frequency.setValueAtTime(900,t); f.frequency.linearRampToValueAtTime(1500,t+.08); f.frequency.linearRampToValueAtTime(700,t+o.d); f.Q.value=2;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(o.vol,t+.04); g.gain.setValueAtTime(o.vol,t+o.d*.75); g.gain.exponentialRampToValueAtTime(.0001,t+o.d);
+    osc.connect(f); f.connect(g); g.connect(out); osc.start(t); osc.stop(t+o.d+.03);
     live++; osc.onended=()=>{ live--; try{g.disconnect();}catch{} }; }
   function noise(o){ const t=ac.currentTime+(o.delay||0); const src=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain();
     src.buffer=nbuf; f.type=o.type||'lowpass'; f.frequency.setValueAtTime(o.ff,t); if(o.ff2) f.frequency.exponentialRampToValueAtTime(o.ff2,t+o.d); f.Q.value=o.q||.8;
@@ -269,6 +308,9 @@ const Snd=(()=>{
     win:()=>[523,659,784,1047,784,1047].forEach((f,i)=>tone({f,d:.18,type:'triangle',vol:.24,delay:i*.11})),
     multi:()=>[784,988,1175].forEach((f,i)=>tone({f,d:.14,type:'square',vol:.1,delay:i*.07})),
     join:()=>tone({f:880,f2:1320,d:.12,vol:.14}),
+    trombone:()=>{ [[311,.36],[294,.36],[277,.36],[262,1.15]].reduce((t,[f,d],i)=>{ brass({f,f2:i===3?248:0,d,vol:.2,delay:t,vib:i===3?7:0}); return t+d*.92; },0);
+      noise({d:.25,vol:.5,ff:900,ff2:120}); },
+    gotcha:()=>{ tone({f:880,d:.09,type:'square',vol:.1}); tone({f:1320,d:.18,type:'triangle',vol:.2,delay:.08}); tone({f:1760,d:.22,type:'triangle',vol:.12,delay:.16}); },
   };
   const GAP={shot0:30,shot1:35,shot2:45,hit:30,wall:50,splat:40,join:150};
   function play(name,o){ if(!ac||muted||live>48||!S[name]) return;
@@ -331,7 +373,7 @@ function shiftPred(dx,dy){
   for(const e of predHist){ e.x+=dx; e.y+=dy; }
 }
 let predAlive=false, predHp=0, myWeapon=0, myAmmo=-1, myFlags=0, myFxT=0, myAngle=-Math.PI/2, predInit=false;
-let prevCd=null, prevPhase='lobby', cdT=0, timeLeft=-1, prevTl=-1;
+let prevCd=null, prevPhase='lobby', cdT=0, timeLeft=-1, prevTl=-1, countStartT=-1e9;
 
 function onMsg(m){
   switch(m.t){
@@ -339,13 +381,13 @@ function onMsg(m){
     myId=m.id; myColor=m.color; W=m.W; H=m.H; BR=m.BR; SPEED=m.SPEED; TURBO=m.TURBO||1.5;
     walls=m.walls; mapName=m.mapName||''; maxRounds=m.maxRounds; roomCode=m.room; hostId=m.host;
     sizeCanvas(); bakeMap(m.mapIdx|0); resetRoundFx();
-    joinInfo={t:'join',name:joinInfo?joinInfo.name:'',room:roomCode}; // při výpadku se vrátíme do stejné hry
+    joinInfo={t:'join',name:joinInfo?joinInfo.name:'',face:joinInfo?joinInfo.face:'',room:roomCode}; // při výpadku se vrátíme do stejné hry
     inGame=true; $('menu').classList.add('hidden'); setStatus(''); snaps=[]; predInit=false; evq.length=0;
     try{ history.replaceState(null,'','?hra='+roomCode); }catch{}
     renderLobby(); syncLobby(); break;
   case 'roster': {
     const before=roster.size;
-    roster=new Map(); for(const r of m.players) roster.set(r[0],{name:r[1],color:r[2],wins:r[3],kills:r[4],bot:r[5]});
+    roster=new Map(); for(const r of m.players) roster.set(r[0],{name:r[1],color:r[2],wins:r[3],kills:r[4],bot:r[5],face:r[6]||''});
     if(roster.size>before&&before>0&&phase==='lobby') Snd.play('join');
     hostId=m.host; lobbyRounds=m.rounds; maxRounds=m.rounds; if(m.phase) phase=m.phase;
     renderLobby(); syncLobby(); break; }
@@ -363,6 +405,8 @@ function onMsg(m){
   case 'full': fail('Tahle hra je plná (20 hráčů).'); break;
   case 'nogame': fail('Hra s kódem „'+((joinInfo&&joinInfo.room)||'')+'“ neexistuje nebo už skončila.'); break;
   case 'kicked': fail('Hostitel tě vyhodil ze hry.'); break;
+  case 'taken': { const f=FACES.find(x=>x.id===m.face); takenFaces.add(m.face); if(selFace===m.face) selFace=''; syncPicker();
+    fail('Za '+(f?f.name:'tuhle postavu')+' už v téhle hře někdo hraje – vyber si jinou postavu.'); break; }
   }
 }
 function fail(txt){
@@ -375,7 +419,7 @@ function onState(m){
   for(const t of m.ps) players[t[0]]={x:t[1],y:t[2],a:t[3],h:t[4],w:t[5],al:t[6],am:t[7],fl:t[8],ft:t[9]};
   snaps.push({at:now,players,bullets:m.bs||[],pu:m.pu||[],mn:m.mn||[]});
   if(snaps.length>40) snaps.shift();
-  if(m.ph==='count'&&prevPhase!=='count'){ firstBlood=false; myKills.length=0; }
+  if(m.ph==='count'&&prevPhase!=='count'){ firstBlood=false; myKills.length=0; countStartT=now; killcam=null; }
   if(m.ph==='count'&&m.cd!==prevCd){ cdT=now; Snd.play(m.cd>0?'beep':'go'); }
   const phaseChanged=m.ph!==phase;
   prevCd=m.cd; prevPhase=m.ph; phase=m.ph; countdown=m.cd;
@@ -458,19 +502,48 @@ cv.addEventListener('touchcancel',touchEnd,{passive:false});
 
 /* ---------- menu ---------- */
 const nameIn=$('name'), codeIn=$('code');
+let selFace=''; try{ selFace=localStorage.getItem('bulanci-postava')||''; }catch{}
+const takenFaces=new Set();
+function buildPicker(){
+  const el=$('picker'); el.textContent='';
+  if(!FACES.some(f=>f.id===selFace)) selFace='';
+  for(const f of FACES){
+    const b=document.createElement('button'); b.type='button'; b.className='pick'; b.dataset.id=f.id; b.title=f.name; b.setAttribute('role','option');
+    const im=document.createElement('img'); im.src='faces/'+f.id+'.webp'; im.alt=''; im.loading='lazy';
+    const sp=document.createElement('span'); sp.textContent=pickLabel(f);
+    b.append(im,sp);
+    b.onclick=()=>{ if(takenFaces.has(f.id)) return; selFace=f.id; Snd.init(); Snd.play('join');
+      try{ localStorage.setItem('bulanci-postava',selFace); }catch{} syncPicker(); };
+    el.append(b);
+  }
+  syncPicker();
+}
+function syncPicker(){
+  for(const b of $('picker').children){ const on=b.dataset.id===selFace; b.classList.toggle('on',on); b.classList.toggle('taken',takenFaces.has(b.dataset.id)); b.setAttribute('aria-selected',on); }
+  const f=FACES.find(x=>x.id===selFace), nick=nameIn.value.trim();
+  $('pickSel').textContent=f?'Hraješ za: '+f.name:(nick?'Přezdívka: '+nick:'Vyber si postavu');
+}
+$('nickToggle').onclick=()=>{ const box=$('nickBox'); box.classList.toggle('hidden'); if(!box.classList.contains('hidden')) nameIn.focus(); };
+nameIn.addEventListener('input',()=>{ if(nameIn.value.trim()){ selFace=''; try{ localStorage.setItem('bulanci-postava',''); }catch{} } syncPicker(); });
+fetch('faces/faces.json').then(r=>r.json()).then(list=>{
+  FACES=Array.isArray(list)?list:[];
+  for(const f of FACES){ const im=new Image(); im.src='faces/'+f.id+'.webp'; faceImg.set(f.id,im); }
+  buildPicker();
+}).catch(()=>{ $('pickSel').textContent='Postavy se nenačetly – napiš si přezdívku'; $('nickBox').classList.remove('hidden'); });
 function normCode(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8); }
 function startSession(info){
   Snd.init();
-  const name=nameIn.value.trim();
-  try{ localStorage.setItem('bulanci-jmeno',name); }catch{}
-  joinInfo=Object.assign({name},info); wantReconnect=true;
+  const face=selFace, name=face?'':nameIn.value.trim();
+  if(!face&&!name){ setStatus('Vyber si postavu (nebo si napiš přezdívku).',true); return; }
+  try{ localStorage.setItem('bulanci-jmeno',nameIn.value.trim()); }catch{}
+  joinInfo=Object.assign({name,face},info); wantReconnect=true;
   if(document.activeElement) document.activeElement.blur();
   clearTimeout(reconnectT); try{ ws&&ws.close(); }catch{}
   connect();
 }
-$('createBtn').onclick=()=>startSession({t:'create'});
+$('createBtn').onclick=()=>{ takenFaces.clear(); syncPicker(); startSession({t:'create'}); };
 $('joinBtn').onclick=()=>{ const c=normCode(codeIn.value); if(!c){ setStatus('Zadej kód hry od kamaráda.',true); codeIn.focus(); return; } startSession({t:'join',room:c}); };
-codeIn.addEventListener('input',()=>{ const c=normCode(codeIn.value); if(codeIn.value!==c) codeIn.value=c; });
+codeIn.addEventListener('input',()=>{ const c=normCode(codeIn.value); if(codeIn.value!==c) codeIn.value=c; if(takenFaces.size){ takenFaces.clear(); syncPicker(); } });
 codeIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('joinBtn').click(); } });
 nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); (normCode(codeIn.value)?$('joinBtn'):$('createBtn')).click(); } });
 function showMenu(){ $('menu').classList.remove('hidden'); hideMsg(); }
@@ -482,7 +555,7 @@ function leaveToMenu(){
 
 /* ---------- lobby ---------- */
 const segEl=$('roundsSeg');
-for(const n of [3,5,7,10]){ const b=document.createElement('button'); b.type='button'; b.textContent=n; b.dataset.n=n;
+for(const n of [2,3,5,7]){ const b=document.createElement('button'); b.type='button'; b.textContent=n; b.dataset.n=n;
   b.onclick=()=>{ send({t:'rounds',n}); b.blur(); }; segEl.append(b); }
 $('addBotBtn').onclick=()=>{ send({t:'addbot'}); $('addBotBtn').blur(); };
 $('startBtn').onclick=()=>{ Snd.init(); send({t:'start'}); $('startBtn').blur(); };
@@ -512,7 +585,9 @@ function renderLobby(){
   $('plCount').textContent='Hráči: '+arr.length+' / 20';
   for(const [id,p] of arr){
     const row=document.createElement('div'); row.className='lrow';
-    const chip=document.createElement('span'); chip.className='chip'; chip.style.background=p.color;
+    let chip;
+    if(p.face){ chip=document.createElement('img'); chip.className='av'; chip.src='faces/'+p.face+'.webp'; chip.alt=''; chip.style.borderColor=p.color; chip.style.background=p.color; }
+    else { chip=document.createElement('span'); chip.className='chip'; chip.style.background=p.color; }
     const nm=document.createElement('span'); nm.className='nm'; nm.textContent=p.name;
     row.append(chip,nm);
     const tag=(cls,txt)=>{ const t=document.createElement('span'); t.className='tag '+cls; t.textContent=txt; row.append(t); };
@@ -655,7 +730,7 @@ bakeMap(0);
 
 /* efekty */
 const parts=[], rings=[], texts=[], booms=[], feed=[];
-let shake=0, flash=null, announce=null, banner=null, firstBlood=false;
+let shake=0, flash=null, announce=null, banner=null, firstBlood=false, killcam=null, killToast=null;
 const myKills=[];
 function part(o){ if(parts.length>=750) parts.shift();
   parts.push(Object.assign({vx:0,vy:0,drag:4,size:3,life:.6,t:0,col:'#fff',kind:'dot',rot:rnd(0,6.28),vr:rnd(-8,8)},o)); }
@@ -719,7 +794,7 @@ function handleEvent(e,stale){
     burst(pos.x,pos.y,'#7cf0ff',9,220,2.5,.4,'spark'); ring(pos.x,pos.y,'#7cf0ff',BR+18,260,3);
     ftext(pos.x,pos.y-32,'BLOK','#7cf0ff',14,600); Snd.play('block',{x:pos.x,y:pos.y,vol:.7}); break; }
   case 'k':{ const killer=e[1], victim=e[2], w=e[3];
-    feed.push({t0:now,k:killer,v:victim,w,kn:nameOf(killer),kc:colorOf(killer),vn:nameOf(victim),vc:colorOf(victim)}); if(feed.length>5) feed.shift();
+    feed.push({t0:now,k:killer,v:victim,w,kn:nameOf(killer),kc:colorOf(killer),vn:nameOf(victim),vc:colorOf(victim),kf:faceOf(killer),vf:faceOf(victim)}); if(feed.length>5) feed.shift();
     if(!firstBlood&&killer!==victim){ firstBlood=true; if(!stale) announce={txt:'PRVNÍ KREV!',sub:nameOf(killer),col:'#ff6b6b',t0:now,dur:1600}; }
     if(stale) break;
     const pos=posOf(victim), col=colorOf(victim);
@@ -728,9 +803,10 @@ function handleEvent(e,stale){
       ring(pos.x,pos.y,col,64,430,6); splat(pos.x,pos.y,col,13);
       Snd.play('splat',{x:pos.x,y:pos.y});
       const L=listener(); addShake(Math.max(0,4-Math.hypot(pos.x-L.x,pos.y-L.y)/120)); }
-    if(victim===myId){ addShake(8); flash={col:'#ff2a2a',t0:now,dur:520,a:.4};
-      announce={txt:killer===myId?'Odpálil ses!':'Dostal tě '+nameOf(killer),sub:'počkej na další kolo',col:'#ff8a8a',t0:now,dur:2300}; }
+    if(victim===myId){ addShake(8); flash={col:'#ff2a2a',t0:now,dur:520,a:.4}; announce=null;
+      killcam={t0:now,killer,w,self:killer===myId,name:nameOf(killer),color:colorOf(killer),face:faceOf(killer)}; Snd.play('trombone'); }
     else if(killer===myId){ myKills.push(now); while(myKills.length&&now-myKills[0]>4000) myKills.shift();
+      killToast={t0:now,name:nameOf(victim),color:colorOf(victim),face:faceOf(victim)}; Snd.play('gotcha');
       const n=myKills.length;
       if(n>=2){ announce={txt:n===2?'DVOJITÉ ZABITÍ!':n===3?'TROJITÉ ZABITÍ!':'NEZASTAVITELNÝ!',sub:'',col:'#ffd13f',t0:now,dur:1500}; Snd.play('multi'); } }
     break; }
@@ -768,6 +844,8 @@ function render(now,dt){
   shake*=Math.exp(-dt*9);
   const sx=shake>.3?rnd(-shake,shake):0, sy=shake>.3?rnd(-shake,shake):0;
   ctx.save(); ctx.translate(sx,sy);
+  const cam=camera(now);
+  if(cam.s!==1){ ctx.translate(W/2,H/2); ctx.scale(cam.s,cam.s); ctx.translate(-cam.x,-cam.y); }
   ctx.drawImage(floorCv,0,0,W,H);
 
   const rt=now-INTERP;
@@ -796,10 +874,12 @@ function render(now,dt){
   drawRings(now); drawParts(dt); drawBooms(now); drawTexts(now);
   ctx.restore();
 
+  drawSpotlight(now,cam);
   drawFlash(now); drawLowHp(now);
   drawTouchControls();
-  drawHUD(now); drawFeed(now); drawBanner(now); drawAnnounce(now);
-  if(phase==='count') drawCountdown(now);
+  drawHUD(now); drawFeed(now); drawBanner(now); drawAnnounce(now); drawKillToast(now);
+  if(phase==='count') drawCountdown(now,cam);
+  drawKillcam(now);
   if(!connected && inGame){
     ctx.fillStyle='rgba(10,12,18,.55)'; ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#fff'; ctx.font='700 26px "Baloo 2",sans-serif'; ctx.textAlign='center';
@@ -867,16 +947,20 @@ function drawBulanek(id,x,y,ang,color,s,name,isMe,now){
   ctx.save(); ctx.rotate(ang); ctx.scale(scl,scl); ctx.translate(-recoil,0); drawWeapon(w,now);
   if(firing&&ft<70&&w!==4) drawMuzzle(w,ft);
   ctx.restore();
-  // tělo
+  // tělo: obličej postavy, nebo klasický bulánek
   ctx.scale(scl*sqx,scl*sqy);
-  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(0,0,BR,0,6.28); ctx.fill();
-  ctx.strokeStyle=isMe?'#fff':'rgba(0,0,0,.3)'; ctx.lineWidth=isMe?3:2.5; ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.2)'; ctx.beginPath(); ctx.arc(-4,-5,BR*.5,0,6.28); ctx.fill();
-  const ex=Math.cos(ang),ey=Math.sin(ang),px=-ey,py=ex;
-  for(const sd of [-1,1]){ const ox=ex*4+px*sd*6, oy=ey*4+py*sd*6;
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ox,oy,4.4,0,6.28); ctx.fill();
-    ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(ox+ex*1.7,oy+ey*1.7,2.2,0,6.28); ctx.fill(); }
-  if(ht<120){ ctx.globalAlpha=(1-ht/120)*.75; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,BR,0,6.28); ctx.fill(); ctx.globalAlpha=1; }
+  const fim=faceOf(id), R=imgOk(fim)?BR+3:BR;
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(0,0,R,0,6.28); ctx.fill();
+  if(imgOk(fim)){ ctx.drawImage(fim,-R,-R,R*2,R*2);
+    ctx.strokeStyle=isMe?'#fff':color; ctx.lineWidth=isMe?3:2.5; ctx.beginPath(); ctx.arc(0,0,R,0,6.28); ctx.stroke(); }
+  else {
+    ctx.strokeStyle=isMe?'#fff':'rgba(0,0,0,.3)'; ctx.lineWidth=isMe?3:2.5; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.2)'; ctx.beginPath(); ctx.arc(-4,-5,BR*.5,0,6.28); ctx.fill();
+    const ex=Math.cos(ang),ey=Math.sin(ang),px=-ey,py=ex;
+    for(const sd of [-1,1]){ const ox=ex*4+px*sd*6, oy=ey*4+py*sd*6;
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ox,oy,4.4,0,6.28); ctx.fill();
+      ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(ox+ex*1.7,oy+ey*1.7,2.2,0,6.28); ctx.fill(); } }
+  if(ht<120){ ctx.globalAlpha=(1-ht/120)*.75; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,R,0,6.28); ctx.fill(); ctx.globalAlpha=1; }
   ctx.restore();
   // štít
   if(fl&1&&!(s.ft<45&&Math.floor(now/120)%2)){
@@ -890,7 +974,7 @@ function drawBulanek(id,x,y,ang,color,s,name,isMe,now){
     ctx.beginPath(); ctx.moveTo(x-d,y-d); ctx.lineTo(x-d+q,y-d+q); ctx.moveTo(x+d,y-d); ctx.lineTo(x+d-q,y-d+q);
     ctx.moveTo(x-d,y+d); ctx.lineTo(x-d+q,y+d-q); ctx.moveTo(x+d,y+d); ctx.lineTo(x+d-q,y+d-q); ctx.stroke(); ctx.restore(); }
   // život, munice, jméno
-  const bw=36, by=y-BR-15;
+  const bw=36, by=y-BR-(imgOk(faceOf(id))?18:15);
   ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(x-bw/2-1,by-1,bw+2,7);
   const hp=s.h; ctx.fillStyle=hp>50?'#51d167':hp>25?'#ffd23f':'#ff5147'; ctx.fillRect(x-bw/2,by,bw*Math.max(0,Math.min(1,hp/100)),5);
   if(w>0&&s.am>=0){ ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(x-bw/2-1,by+6,bw+2,4); ctx.fillStyle=WCOL[w]; ctx.fillRect(x-bw/2,by+6.5,bw*Math.min(1,s.am/AMMO_MAX[w]),2.5); }
@@ -1015,17 +1099,100 @@ function drawLowHp(now){ if(!(predInit&&predAlive&&predHp<35&&phase==='play')) r
   g.addColorStop(0,'rgba(255,30,30,0)'); g.addColorStop(1,'rgba(255,30,30,'+a.toFixed(3)+')'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
 
 /* ---------- HUD ---------- */
-function drawCountdown(now){
-  ctx.fillStyle='rgba(10,12,18,.42)'; ctx.fillRect(0,0,W,H);
-  const t=(now-cdT)/1000, sc=t<.18?1.8-(t/.18)*.8:1;
+function drawCountdown(now,cam){
+  // odpočet jde do té poloviny obrazovky, kde není vlastní postava
+  let top=true;
+  if(predInit&&predAlive){ const sy=(pred.y-cam.y)*cam.s+H/2; top=sy>H*.45; }
+  const y0=top?92:H-176;
+  const t=(now-cdT)/1000, sc=t<.18?1.7-(t/.18)*.7:1;
   const txt=countdown>0?String(countdown):'START';
-  ctx.save(); ctx.translate(W/2,H/2); ctx.scale(sc,sc); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
-  ctx.font='800 120px "Baloo 2",sans-serif'; ctx.lineWidth=10; ctx.strokeStyle='rgba(10,12,18,.8)'; ctx.strokeText(txt,0,0);
+  ctx.save(); ctx.translate(W/2,y0); ctx.scale(sc,sc); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  ctx.font='800 86px "Baloo 2",sans-serif'; ctx.lineWidth=10; ctx.strokeStyle='rgba(10,12,18,.85)'; ctx.strokeText(txt,0,0);
   ctx.fillStyle=countdown>0?'#fff':'#ffd13f'; ctx.fillText(txt,0,0); ctx.restore();
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  if(mapName){ ctx.font='700 28px Fredoka,sans-serif'; ctx.fillStyle='#ffd13f'; ctx.fillText('Mapa: '+mapName,W/2,H/2+92); }
-  ctx.font='600 15px Fredoka,sans-serif'; ctx.fillStyle='#cfd6e6'; ctx.fillText('Sbírej bedny: zbraně, štít, turbo, lékárny',W/2,H/2+126);
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round'; ctx.strokeStyle='rgba(10,12,18,.85)';
+  if(mapName){ ctx.font='700 22px Fredoka,sans-serif'; ctx.lineWidth=5; ctx.strokeText('Mapa: '+mapName,W/2,y0+54); ctx.fillStyle='#ffd13f'; ctx.fillText('Mapa: '+mapName,W/2,y0+54); }
+  ctx.font='600 15px Fredoka,sans-serif'; ctx.lineWidth=4; ctx.strokeText('Sbírej bedny: zbraně, štít, turbo, lékárny',W/2,y0+82); ctx.fillStyle='#cfd6e6'; ctx.fillText('Sbírej bedny: zbraně, štít, turbo, lékárny',W/2,y0+82);
   ctx.textBaseline='alphabetic';
+}
+/* úvod kola: přiblížení na vlastní postavu, pak oddálení na celou mapu */
+function camera(now){
+  const tc=(now-countStartT)/1000;
+  if(!(predInit&&predAlive&&(phase==='count'||phase==='play')&&tc<3.4)) return {s:1,x:W/2,y:H/2};
+  let s=2.1;
+  if(tc>=1.4){ const e=Math.min(1,(tc-1.4)/1.9), k=e<.5?2*e*e:1-Math.pow(-2*e+2,2)/2; s=2.1+(1-2.1)*k; }
+  const hw=W/(2*s), hh=H/(2*s);
+  return {s,x:Math.max(hw,Math.min(W-hw,pred.x)),y:Math.max(hh,Math.min(H-hh,pred.y))};
+}
+function drawSpotlight(now,cam){
+  if(!(predInit&&predAlive)) return;
+  const tc=(now-countStartT)/1000; if(!(phase==='count'||phase==='play')||tc>4.8) return;
+  const fade=tc<4?1:Math.max(0,1-(tc-4)/.8);
+  const sx=(pred.x-cam.x)*cam.s+W/2, sy=(pred.y-cam.y)*cam.s+H/2, r=(BR+14)*cam.s;
+  ctx.save();
+  ctx.globalAlpha=.66*fade; const g=ctx.createRadialGradient(sx,sy,r*.9,sx,sy,r*2.4);
+  g.addColorStop(0,'rgba(5,7,12,0)'); g.addColorStop(1,'rgba(5,7,12,1)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#ffd13f'; ctx.lineWidth=3;
+  for(let k=0;k<2;k++){ const ph=((now/900)+k*.5)%1; ctx.globalAlpha=(1-ph)*fade; ctx.beginPath(); ctx.arc(sx,sy,r*(.9+ph*.9),0,6.28); ctx.stroke(); }
+  // šipka a popisek (když je postava u horního okraje, popisek jde pod ni)
+  const below=sy+r+120<H-20, bob=Math.sin(now/170)*6, dir=below?1:-1; // popisek radši pod postavu (nad ní je jméno a odpočet)
+  const ay=sy+dir*(r+(below?22:48))+bob; // nad hlavou je ještě jméno a život
+  ctx.globalAlpha=fade; ctx.fillStyle='#ffd13f';
+  ctx.beginPath(); ctx.moveTo(sx,ay-dir*16); ctx.lineTo(sx-13,ay); ctx.lineTo(sx+13,ay); ctx.closePath(); ctx.fill();
+  const ly=ay+dir*30, nm=nameOf(myId);
+  ctx.font='800 22px "Baloo 2",sans-serif'; const tw=Math.max(ctx.measureText('TOHLE JSI TY').width,nm?ctx.measureText(nm).width*.75:0);
+  ctx.fillStyle='rgba(13,16,24,.9)'; rr(sx-tw/2-16,ly-24,tw+32,48,12); ctx.fill(); ctx.strokeStyle='#ffd13f'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#ffd13f'; ctx.fillText('TOHLE JSI TY',sx,ly-7);
+  ctx.font='600 13px Fredoka,sans-serif'; ctx.fillStyle='#fff'; ctx.fillText(nm,sx,ly+13);
+  ctx.restore(); ctx.textBaseline='alphabetic';
+}
+/* kdo tě sejmul */
+function drawAvatar(x,y,r,face,color){
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,r,0,6.28); ctx.fill();
+  if(imgOk(face)) ctx.drawImage(face,x-r,y-r,r*2,r*2);
+  else { for(const sd of [-1,1]){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+sd*r*.32,y-r*.08,r*.24,0,6.28); ctx.fill();
+      ctx.fillStyle='#14131b'; ctx.beginPath(); ctx.arc(x+sd*r*.32,y-r*.02,r*.12,0,6.28); ctx.fill(); }
+    ctx.strokeStyle='#14131b'; ctx.lineWidth=r*.09; ctx.beginPath(); ctx.moveTo(x-r*.55,y-r*.5); ctx.lineTo(x-r*.12,y-r*.3); ctx.moveTo(x+r*.55,y-r*.5); ctx.lineTo(x+r*.12,y-r*.3); ctx.stroke(); }
+  ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(3,r*.06); ctx.beginPath(); ctx.arc(x,y,r,0,6.28); ctx.stroke();
+}
+function drawKillcam(now){
+  if(!killcam) return; const t=(now-killcam.t0)/1000;
+  if(t>3.6){ killcam=null; return; }
+  const k=killcam, al=t<.15?t/.15:t>3.1?(3.6-t)/.5:1;
+  const cx=W/2, cy=H/2+8;
+  ctx.save(); ctx.globalAlpha=al*.72; ctx.fillStyle='#07090e'; ctx.fillRect(0,0,W,H);
+  // paprsky
+  ctx.globalAlpha=al*.22; ctx.fillStyle=k.self?'#ff9a3c':'#ff3b3b';
+  for(let i=0;i<14;i++){ const a0=i/14*Math.PI*2+now/2600; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,W,a0,a0+Math.PI/14); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  const pop=t<.5?1+.35*Math.exp(-t*9)*Math.cos(t*28):1, r=84*pop;
+  const jx=t<.6?rnd(-4,4)*(1-t/.6):0, jy=t<.6?rnd(-4,4)*(1-t/.6):0;
+  ctx.save(); ctx.globalAlpha=al;
+  // pára od hlavy
+  for(let i=0;i<6;i++){ const ph=((now/700)+i/6)%1, sd=i%2?1:-1;
+    ctx.globalAlpha=al*(1-ph)*.55; ctx.fillStyle='#e8ecf4';
+    ctx.beginPath(); ctx.arc(cx+sd*(r*.8+ph*40),cy-r*.55-ph*70,8+ph*14,0,6.28); ctx.fill(); }
+  ctx.globalAlpha=al;
+  drawGlow(cx,cy,r*2.1,k.color,.55);
+  drawAvatar(cx+jx,cy+jy,r,k.face,k.color);
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  const title=k.self?'ODPÁLIL SES SÁM!':'SEJMUL TĚ';
+  ctx.font='800 46px "Baloo 2",sans-serif'; ctx.lineWidth=9; ctx.strokeStyle='rgba(10,12,18,.95)';
+  ctx.strokeText(title,cx,cy-r-42); ctx.fillStyle='#ff6b6b'; ctx.fillText(title,cx,cy-r-42);
+  ctx.font='800 34px "Baloo 2",sans-serif'; ctx.lineWidth=8; ctx.strokeText(k.name,cx,cy+r+34); ctx.fillStyle='#fff'; ctx.fillText(k.name,cx,cy+r+34);
+  if(!k.self){ ctx.font='600 16px Fredoka,sans-serif'; const wl='zbraň: '+(WNAME[k.w]||'?').toLowerCase(); const ww=ctx.measureText(wl).width;
+    drawIcon(WKEY[k.w]||'pistol',cx-ww/2-14,cy+r+70,1,'#cfd6e6'); ctx.fillStyle='#cfd6e6'; ctx.fillText(wl,cx+8,cy+r+71); }
+  ctx.restore(); ctx.textBaseline='alphabetic';
+}
+function drawKillToast(now){
+  if(!killToast) return; const t=(now-killToast.t0)/1700; if(t>=1){ killToast=null; return; }
+  const k=killToast, e=1-Math.pow(1-Math.min(1,t/.12),3), al=t>.75?(1-t)/.25:1, y=96+(1-e)*-30;
+  ctx.save(); ctx.globalAlpha=al; ctx.textBaseline='middle'; ctx.textAlign='left';
+  ctx.font='800 22px "Baloo 2",sans-serif'; const txt='SEJMUL JSI '+k.name.toUpperCase()+'!'; const tw=ctx.measureText(txt).width;
+  const wd=tw+86, x=W/2-wd/2;
+  ctx.fillStyle='rgba(13,16,24,.9)'; rr(x,y-30,wd,60,30); ctx.fill(); ctx.strokeStyle='#ffd13f'; ctx.lineWidth=2.5; ctx.stroke();
+  drawAvatar(x+32,y,24,k.face,k.color);
+  ctx.fillStyle='#ffd13f'; ctx.font='800 22px "Baloo 2",sans-serif'; ctx.fillText(txt,x+66,y+1);
+  ctx.restore();
 }
 function drawHUD(now){
   if(!inGame||phase==='lobby') return;
@@ -1034,10 +1201,12 @@ function drawHUD(now){
   let x=10; ctx.textAlign='left'; ctx.textBaseline='middle';
   for(const p of arr){
     ctx.fillStyle='rgba(13,16,24,.78)'; rr(x,8,120,30,8); ctx.fill();
-    ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(x+15,23,7,0,6.28); ctx.fill();
+    ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(x+15,23,p.face?10:7,0,6.28); ctx.fill();
+    const pim=p.face&&faceImg.get(p.face); if(imgOk(pim)) ctx.drawImage(pim,x+5,13,20,20);
     if(p===top){ ctx.fillStyle='#ffd13f'; ctx.beginPath(); ctx.moveTo(x+8,14); ctx.lineTo(x+10,8); ctx.lineTo(x+13,12); ctx.lineTo(x+15,6); ctx.lineTo(x+17,12); ctx.lineTo(x+20,8); ctx.lineTo(x+22,14); ctx.closePath(); ctx.fill(); }
     ctx.fillStyle='#fff'; ctx.font='700 12px "Baloo 2",sans-serif';
-    ctx.fillText((p.name.length>9?p.name.slice(0,9):p.name)+' ×'+p.wins,x+27,23);
+    const sn=p.name.length>9&&p.name.includes(' ')?p.name.split(' ')[0]+' '+p.name.split(' ')[1][0]+'.':p.name.slice(0,10);
+    ctx.fillText(sn+' ×'+p.wins,x+27,23);
     x+=126; if(x>W-176) break;
   }
   if(phase==='play'&&timeLeft>=0&&timeLeft<=15){ // poslední vteřiny kola
@@ -1090,14 +1259,17 @@ function drawFeed(now){
     const age=now-f.t0, al=age>5200?(6000-age)/800:1, slide=age<180?(1-age/180)*40:0;
     const self=f.k===f.v;
     ctx.font='700 13px Fredoka,sans-serif';
-    const wk=self?0:ctx.measureText(f.kn).width+8, wv=ctx.measureText(f.vn).width;
+    const fk=self?0:(imgOk(f.kf)?24:0), fv=imgOk(f.vf)?24:0;
+    const wk=self?0:fk+ctx.measureText(f.kn).width+8, wv=fv+ctx.measureText(f.vn).width;
     const total=wk+30+wv+20, x=W-12-total+slide;
-    ctx.globalAlpha=al; ctx.fillStyle=(f.k===myId||f.v===myId)?'rgba(70,52,10,.88)':'rgba(13,16,24,.8)'; rr(x,y-12,total,24,8); ctx.fill();
-    let cx=x+10;
-    if(!self){ ctx.fillStyle=f.kc; ctx.fillText(f.kn,cx,y+1); cx+=wk; }
+    ctx.globalAlpha=al; ctx.fillStyle=(f.k===myId||f.v===myId)?'rgba(70,52,10,.88)':'rgba(13,16,24,.8)'; rr(x,y-13,total,26,8); ctx.fill();
+    let cx=x+8;
+    const mini=(im,c,xx)=>{ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(xx+10,y,11,0,6.28); ctx.fill(); ctx.drawImage(im,xx,y-10,20,20); };
+    if(!self){ if(fk){ mini(f.kf,f.kc,cx); cx+=fk; } ctx.fillStyle=f.kc; ctx.fillText(f.kn,cx,y+1); cx+=wk-fk; }
     drawIcon(self?'skull':(WKEY[f.w]||'pistol'),cx+10,y,.8,'#e9edf6'); cx+=26;
+    if(fv){ mini(f.vf,f.vc,cx); cx+=fv; }
     ctx.fillStyle=f.vc; ctx.fillText(f.vn,cx,y+1);
-    y+=28;
+    y+=30;
   }
   ctx.globalAlpha=1; ctx.textBaseline='alphabetic';
 }
@@ -1117,9 +1289,9 @@ function drawBanner(now){
   ctx.restore();
 }
 function drawAnnounce(now){
-  if(!announce) return; const t=(now-announce.t0)/announce.dur; if(t>=1){ announce=null; return; }
+  if(!announce||killcam) return; const t=(now-announce.t0)/announce.dur; if(t>=1){ announce=null; return; }
   const sc=t<.12?.5+(t/.12)*.7:t<.2?1.2-((t-.12)/.08)*.2:1, al=t>.8?(1-t)/.2:1;
-  ctx.save(); ctx.globalAlpha=al; ctx.translate(W/2,H*.3); ctx.scale(sc,sc);
+  ctx.save(); ctx.globalAlpha=al; ctx.translate(W/2,H*.36); ctx.scale(sc,sc);
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
   ctx.font='800 52px "Baloo 2",sans-serif'; ctx.lineWidth=8; ctx.strokeStyle='rgba(10,12,18,.9)';
   ctx.strokeText(announce.txt,0,0); ctx.fillStyle=announce.col; ctx.fillText(announce.txt,0,0);
@@ -1140,7 +1312,8 @@ function drawTouchControls(){
 /* ---------- start ---------- */
 (function initMenu(){
   let saved=''; try{ saved=localStorage.getItem('bulanci-jmeno')||''; }catch{}
-  nameIn.value=saved||('Hráč'+Math.floor(Math.random()*900+100));
+  nameIn.value=saved||'';
+  if(saved&&!selFace) $('nickBox').classList.remove('hidden');
   const c=normCode(new URLSearchParams(location.search).get('hra'));
   if(c){ codeIn.value=c; setStatus('Kamarád tě zve do hry '+c+' – zkontroluj jméno a klikni na Připojit.');
     $('joinBtn').classList.remove('ghost'); $('createBtn').classList.add('ghost'); }

@@ -8,4 +8,4 @@ services:
     startCommand: npm start
     envVars:
       - key: ROUNDS
-        value: "5"
+        value: "2"

@@ -7,19 +7,24 @@ deploy** a všichni se připojí na jednu adresu.
 
 ## Jak se hraje
 
-1. **Hostitel** otevře hru, zadá jméno a klikne na **Založit novou hru**.
+1. **Hostitel** otevře hru, vybere si **postavu** (naštvaný obličej někoho z týmu;
+   vlastní přezdívka je schovaná pod odkazem „nebo si napiš vlastní přezdívku“)
+   a klikne na **Založit novou hru**. Každou postavu může v jedné hře mít jen jeden hráč.
    Dostane **kód hry** (např. `K7PXQ`) a odkaz `…/?hra=K7PXQ`.
 2. Kamarádi otevřou odkaz (kód se předvyplní), nebo kód zadají ručně, a kliknou
    na **Připojit**.
 3. V **lobby** hostitel vidí, kdo se připojil, může **přidat / odebrat boty**,
    **vyhodit hráče** (potvrzuje se druhým kliknutím) a zvolit **počet výher do
-   konce zápasu** (3 / 5 / 7 / 10).
+   konce zápasu** (2 / 3 / 5 / 7, výchozí 2).
 4. Hra začne, **až ji hostitel spustí**. Kdo přijde během zápasu, naskočí od
    dalšího kola. Po konci zápasu se všichni vrátí do lobby a čeká se zase na
    hostitele. Když hostitel odejde, hostitelem se stane další hráč.
 
-**Ve hře:** poslední přeživší bere kolo. Každé kolo je na jiné z 5 map. Kolo má
-pojistku 90 s; když nikdo nevyhraje, je remíza.
+**Ve hře:** poslední přeživší bere kolo. Každé kolo je na jiné z 5 map. Na začátku
+kola kamera přiblíží tvoji postavu („TOHLE JSI TY“) a pak se oddálí na celou mapu.
+Když tě někdo sejme, ukáže se jeho obličej se zvukem; v přehledu zabití vpravo
+nahoře vidí všichni, kdo koho sejmul. Kolo má pojistku 90 s; když nikdo
+nevyhraje, je remíza.
 
 **Bedny:** samopal, brokovnice, raketomet, miny (pokládají se za sebe), lékárna,
 štít (6 s nezranitelnost) a turbo (7 s rychlost ×1,5). Kdo sebere zbraň, má kolem
@@ -57,7 +62,7 @@ Během hraní neusne, protože aktivitu drží WebSocket zprávy.
 | Proměnná | Výchozí | Význam |
 |---|---|---|
 | `PORT`          | 3000 | Port serveru (hosting nastaví sám). |
-| `ROUNDS`        | 5    | Výchozí počet výher do konce zápasu (hostitel ho v lobby může změnit). |
+| `ROUNDS`        | 2    | Výchozí počet výher do konce zápasu (hostitel ho v lobby může změnit). |
 | `ROUND_SECONDS` | 90   | Nejdelší délka jednoho kola; pak remíza. |
 
 ## Bezpečnost
@@ -69,6 +74,8 @@ Během hraní neusne, protože aktivitu drží WebSocket zprávy.
   spojení, max 25 rozehraných her, max 8 spojení z jedné IP, odpojení bez vstupu
   do hry po 10 s, odmítnutí připojení z cizích webů.
 - Akce hostitele (start, boti, vyhazování, počet kol) ověřuje server.
+- **Portréty týmu** (`public/faces/`) jsou upravené fotky ze stránky
+  petrhandlir.cz/o-nas. Vidí je každý, kdo otevře adresu hry (i bez kódu).
 - **Kód hry není heslo.** Kdo ho zná, připojí se; hostitel ho může vyhodit, ale
   vyhozený hráč se může s kódem připojit znovu.
 
@@ -79,5 +86,6 @@ Během hraní neusne, protože aktivitu drží WebSocket zprávy.
 ├── package.json
 ├── render.yaml        # nasazení na Render (Blueprint)
 └── public/
-    └── index.html     # klient (hra v prohlížeči, grafika a zvuky kreslené kódem)
+    ├── index.html     # klient (hra v prohlížeči, grafika a zvuky kreslené kódem)
+    └── faces/         # naštvané portréty postav + faces.json (id, jméno)
 ```

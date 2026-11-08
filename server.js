@@ -16,8 +16,8 @@ const crypto = require("crypto");
 const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
-const ROUNDS_TO_WIN = parseInt(process.env.ROUNDS || "5", 10); // výchozí počet výher do konce zápasu (hostitel může změnit)
-const ROUND_CHOICES = [3, 5, 7, 10];
+const ROUNDS_TO_WIN = parseInt(process.env.ROUNDS || "2", 10); // výchozí počet výher do konce zápasu (hostitel může změnit)
+const ROUND_CHOICES = [2, 3, 5, 7];
 const ROUND_TICKS = parseInt(process.env.ROUND_SECONDS || "90", 10) * 30; // pojistka: kolo nejdéle 90 s, pak remíza
 const PUBLIC = path.join(__dirname, "public");
 
@@ -26,6 +26,7 @@ const MIME = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml",
   ".ico": "image/x-icon", ".json": "application/json", ".webmanifest": "application/manifest+json",
+  ".webp": "image/webp",
 };
 // Servírujeme jen soubory, které ve složce public existují při startu (whitelist).
 // URL se nikdy nepřevádí na cestu na disku, takže nejde o path traversal ani pád na poškozené URL.
@@ -225,13 +226,13 @@ function cleanName(name) {
     .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff<>&"'`]/g, "")
     .replace(/\s+/g, " ").trim().slice(0, 16);
 }
-function makePlayer(room, ws, name, prefColor, bot) {
+function makePlayer(room, ws, name, prefColor, bot, face) {
   const ci = freeColorIdx(room, prefColor);
   const id = ++room.nid;
-  name = cleanName(name);
+  name = face ? FACES.get(face).short : cleanName(name);
   if (!name) name = bot ? "Bot " + id : "Hráč " + id;
   return {
-    id, ws: ws || null, bot: !!bot, name, colorIdx: ci, color: COLORS[ci],
+    id, ws: ws || null, bot: !!bot, name, face: face || "", colorIdx: ci, color: COLORS[ci],
     x: 0, y: 0, vx: 0, vy: 0, angle: -Math.PI / 2,
     hp: 100, maxHp: 100, alive: false, waiting: false,
     weapon: "pistol", ammo: Infinity, cd: 0, wins: 0, kills: 0, shield: 0, turbo: 0,
@@ -498,6 +499,13 @@ function standings(room) {
 }
 
 /* ============================ SÍŤ ============================ */
+/* ---------- postavy (obličeje z public/faces) ---------- */
+const FACES = new Map();
+try {
+  for (const f of JSON.parse(fs.readFileSync(path.join(PUBLIC, "faces", "faces.json"), "utf8")))
+    if (/^[a-z0-9-]{1,40}$/.test(f.id)) FACES.set(f.id, { name: String(f.name), short: String(f.short).slice(0, 16) });
+} catch (e) { console.log("faces.json nenačten:", e.message); }
+
 /* ---------- ochrana proti zahlcení ---------- */
 const MAX_ROOMS = 25;          // každá místnost se simuluje 30× za s – víc by free instance neutáhla
 const MAX_CONNECTIONS = 150;   // celkem otevřených spojení
@@ -536,7 +544,7 @@ function broadcast(room, obj) {
     if (p.ws && p.ws.readyState === WebSocket.OPEN) p.ws.send(s);
 }
 function broadcastRoster(room) {
-  const players = [...room.players.values()].map((p) => [p.id, p.name, p.color, p.wins, p.kills, p.bot ? 1 : 0]);
+  const players = [...room.players.values()].map((p) => [p.id, p.name, p.color, p.wins, p.kills, p.bot ? 1 : 0, p.face]);
   broadcast(room, { t: "roster", players, host: room.hostId, code: room.code, rounds: room.rounds, phase: room.phase });
 }
 function hostOf(ws) { // akce smí dělat jen hostitel své místnosti
@@ -567,7 +575,9 @@ wss.on("connection", (ws, req) => {
       if (m.t === "create") { room = createRoom(); if (!room) { send(ws, { t: "busy" }); return; } }
       else { room = rooms.get(normCode(m.room)); if (!room) { send(ws, { t: "nogame" }); return; } }
       if (room.players.size >= MAX) { send(ws, { t: "full" }); return; }
-      const p = makePlayer(room, ws, m.name, m.color, false);
+      const face = typeof m.face === "string" && FACES.has(m.face) ? m.face : "";
+      if (face && [...room.players.values()].some((x) => x.face === face)) { send(ws, { t: "taken", face }); return; }
+      const p = makePlayer(room, ws, m.name, m.color, false, face);
       room.players.set(p.id, p); ws.player = p; ws.room = room;
       if (!room.hostId) room.hostId = p.id;
       if (room.phase !== "lobby") { p.alive = false; p.waiting = true; } // zápas běží: přidá se od dalšího kola
@@ -575,7 +585,7 @@ wss.on("connection", (ws, req) => {
         t: "welcome", id: p.id, color: p.color, W, H, BR, SPEED, TURBO, walls: room.walls,
         mapName: MAPS[room.mapIdx].name, mapIdx: room.mapIdx,
         weapons: IDX_WEAPON.map((k) => WEAPONS[k].name),
-        maxRounds: room.rounds, room: room.code, host: room.hostId, max: MAX,
+        maxRounds: room.rounds, room: room.code, host: room.hostId, max: MAX, face: p.face,
       });
       broadcastRoster(room);
     } else if (m.t === "start") {
