@@ -30,13 +30,22 @@ Když tě někdo sejme, ukáže se jeho obličej se zvukem; v přehledu zabití 
 nahoře vidí všichni, kdo koho sejmul. Kolo má pojistku 90 s; když nikdo
 nevyhraje, je remíza.
 
+**Mapy (8):** Pevnost, Sloupy, Kříž, Bludiště, Aréna a tři speciální:
+**Sklad sudů** (výbušné sudy s řetězovou reakcí), **Gumárna** (kulky a rakety se
+odrážejí od stěn – po odrazu trefíš i sebe) a **Výpadek proudu** (tma, vidíš jen
+kolem sebe, světlo dávají výstřely, výbuchy a občasné blesky).
+
+**Hudba:** vlastní skladby generované syntezátorem v prohlížeči (žádné nahrávky):
+klidná v menu a lobby, ve hře každé kolo jiný styl (synthwave, chiptune, drum & bass,
+industrial); v posledních vteřinách a ve finále 1 na 1 přitvrdí. **H** = hudba zap/vyp.
+
 **Bedny:** samopal, brokovnice, raketomet, miny (pokládají se za sebe), lékárna,
 štít (6 s nezranitelnost) a turbo (7 s rychlost ×1,5). Kdo sebere zbraň, má kolem
 sebe barevnou auru, zbraň je vidět v ruce a pod životy má ukazatel munice.
 
 **Ovládání:** WASD nebo šipky = pohyb a míření, mezerník nebo Enter = palba,
 gamepad funguje taky. Na telefonu: levá půlka = pohyb, pravá = palba.
-**M** = zvuk, **Esc** = odchod (s potvrzením).
+**M** = zvuk, **H** = hudba, **Esc** = odchod (s potvrzením).
 
 ---
 
@@ -44,7 +53,7 @@ gamepad funguje taky. Na telefonu: levá půlka = pohyb, pravá = palba.
 
 V menu i v lobby je tlačítko **🏆 Žebříček všech her**: bedna TOP 3 s fotkami a
 tabulka (zápasy, výhry, vyhraná kola, zabití, zásahy, smrti). Počítají se jen
-dohrané zápasy a jen lidé (boti ne). Žebříček je vždy aktuální (server ho drží v
+dohrané zápasy a zobrazují se jen postavy s fotkou (ne boti ani vlastní přezdívky). Žebříček je vždy aktuální (server ho drží v
 paměti) a zálohuje se do souboru `zebricek.json` ve větvi **`zebricek`** tohoto
 repozitáře. K tomu je na Renderu potřeba proměnná `GITHUB_TOKEN` (viz níže);
 bez ní se žebříček po restartu serveru vymaže.

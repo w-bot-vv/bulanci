@@ -114,11 +114,36 @@ const MAPS = [
     { x: 90, y: 490, w: 70, h: 70 }, { x: 840, y: 490, w: 70, h: 70 },
     { x: 480, y: 300, w: 40, h: 40 },
   ] },
-].map((m) => ({ name: m.name, walls: [...BORDER, ...m.walls] }));
+  // výbušné sudy: střel do nich, bouchnou a odpálí i sudy kolem
+  { name: "Sklad sudů", feat: { barrels: true }, walls: [
+    { x: 150, y: 150, w: 200, h: 26 }, { x: 650, y: 150, w: 200, h: 26 },
+    { x: 150, y: 464, w: 200, h: 26 }, { x: 650, y: 464, w: 200, h: 26 },
+    { x: 470, y: 290, w: 60, h: 60 },
+  ], barrels: [[430, 245], [570, 245], [430, 395], [570, 395], [402, 320], [598, 320],
+    [110, 320], [145, 292], [145, 348], [890, 320], [855, 292], [855, 348],
+    [500, 92], [528, 116], [500, 548], [472, 524], [250, 215], [750, 215], [250, 425], [750, 425]] },
+  // gumové stěny: kulky se odrážejí (a můžeš trefit i sám sebe)
+  { name: "Gumárna", feat: { bounce: true }, walls: [
+    { x: 200, y: 120, w: 30, h: 150 }, { x: 770, y: 120, w: 30, h: 150 },
+    { x: 200, y: 370, w: 30, h: 150 }, { x: 770, y: 370, w: 30, h: 150 },
+    { x: 330, y: 200, w: 120, h: 30 }, { x: 550, y: 410, w: 120, h: 30 },
+    { x: 550, y: 200, w: 120, h: 30 }, { x: 330, y: 410, w: 120, h: 30 },
+    { x: 470, y: 300, w: 60, h: 40 },
+  ] },
+  // tma: každý vidí jen kolem sebe, světlo dělají výstřely, výbuchy a blesky
+  { name: "Výpadek proudu", feat: { dark: true }, walls: [
+    { x: 120, y: 110, w: 260, h: 28 }, { x: 620, y: 110, w: 260, h: 28 },
+    { x: 120, y: 502, w: 260, h: 28 }, { x: 620, y: 502, w: 260, h: 28 },
+    { x: 250, y: 220, w: 28, h: 200 }, { x: 722, y: 220, w: 28, h: 200 },
+    { x: 380, y: 240, w: 240, h: 28 }, { x: 380, y: 372, w: 240, h: 28 },
+    { x: 486, y: 110, w: 28, h: 90 }, { x: 486, y: 440, w: 28, h: 90 },
+  ] },
+].map((m) => ({ name: m.name, walls: [...BORDER, ...m.walls], feat: m.feat || {}, barrels: m.barrels || [] }));
+const BARREL = { half: 13, hp: 40, radius: 100, dmg: 75, chain: 6 };
 
 // zdi aktuálně simulované místnosti (simulace je synchronní, místnosti se střídají)
-let walls = MAPS[0].walls;
-function useRoom(room) { walls = room.walls; }
+let walls = MAPS[0].walls, barrels = [];
+function useRoom(room) { walls = room.walls; barrels = room.barrels || []; }
 function nextMap(room) {
   // projde všech 5 map v náhodném pořadí, pak zamíchá znovu; nikdy dvakrát stejná za sebou
   if (!room.mapQueue || room.mapQueue.length === 0) {
@@ -129,6 +154,8 @@ function nextMap(room) {
   }
   room.mapIdx = room.mapQueue.shift();
   room.walls = MAPS[room.mapIdx].walls;
+  room.feat = MAPS[room.mapIdx].feat;
+  room.barrels = MAPS[room.mapIdx].barrels.map((b, i) => ({ id: i + 1, x: b[0], y: b[1], hp: BARREL.hp, fuse: 0, owner: 0 }));
   useRoom(room);
   room.spawns = genSpawns();
 }
@@ -163,12 +190,20 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function hitsWall(x, y, r) {
   for (const w of walls)
     if (x + r > w.x && x - r < w.x + w.w && y + r > w.y && y - r < w.y + w.h) return true;
+  for (const b of barrels)
+    if (Math.abs(x - b.x) < r + BARREL.half && Math.abs(y - b.y) < r + BARREL.half) return true;
   return false;
 }
 function pointInWall(x, y) {
   for (const w of walls)
     if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) return true;
-  return false;
+  return !!barrelAt(x, y);
+}
+function barrelAt(x, y) { return barrels.find((b) => Math.abs(x - b.x) < BARREL.half && Math.abs(y - b.y) < BARREL.half); }
+function hitBarrel(b, dmg, owner, delay) {
+  if (b.fuse) return;
+  b.hp -= dmg; b.owner = owner;
+  if (b.hp <= 0) b.fuse = delay;   // bouchne za chvilku → řetězová reakce
 }
 function lineClear(x1, y1, x2, y2) {
   const steps = Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 14);
@@ -268,7 +303,7 @@ function startRound(room) {
     room.roundMode = opts[Math.floor(Math.random() * opts.length)];
   } else room.roundMode = room.mode;
   const wpn = room.roundMode === "classic" ? "pistol" : room.roundMode;
-  broadcast(room, { t: "map", walls: room.walls, name: MAPS[room.mapIdx].name, idx: room.mapIdx, count: MAPS.length, mode: room.roundMode });
+  broadcast(room, { t: "map", walls: room.walls, name: MAPS[room.mapIdx].name, idx: room.mapIdx, count: MAPS.length, mode: room.roundMode, feat: room.feat });
   const list = [...room.players.values()];
   list.forEach((p, i) => {
     const sp = room.spawns[i % room.spawns.length] || { x: W / 2, y: H / 2 };
@@ -330,6 +365,7 @@ function damage(room, t, amount, ownerId, wIdx) {
 }
 function explode(room, x, y, radius, dmg, ownerId, wIdx) {
   room.ev.push(["x", Math.round(x), Math.round(y), radius]);
+  for (const b of room.barrels) { const d = Math.hypot(b.x - x, b.y - y); if (d < radius + BARREL.half) hitBarrel(b, 999, ownerId, BARREL.chain); }
   for (const t of room.players.values()) {
     if (!t.alive) continue;
     const d = Math.hypot(t.x - x, t.y - y);
@@ -435,14 +471,27 @@ function updateRoom(room) {
       const bl = room.bullets[i];
       bl.x += bl.vx; bl.y += bl.vy; bl.life--;
       let dead = bl.life <= 0;
-      if (!dead && pointInWall(bl.x, bl.y)) {
+      const brl = !dead && barrelAt(bl.x, bl.y);
+      if (brl) {   // zásah sudu
+        if (bl.explode) explode(room, bl.x, bl.y, bl.radius, bl.splash, bl.owner, bl.w);
+        else { hitBarrel(brl, bl.dmg, bl.owner, 1); room.ev.push(["w", Math.round(bl.x - bl.vx * 0.5), Math.round(bl.y - bl.vy * 0.5)]); }
+        dead = true;
+      } else if (!dead && pointInWall(bl.x, bl.y) && room.feat.bounce && (bl.bounces | 0) < (bl.explode ? 2 : 3)) {
+        // gumová stěna: odraz podle toho, kterou osou střela do zdi vjela
+        const px = bl.x - bl.vx, py = bl.y - bl.vy;
+        const hx = pointInWall(px + bl.vx, py), hy = pointInWall(px, py + bl.vy);
+        if (hx || !hy) bl.vx = -bl.vx;
+        if (hy || !hx) bl.vy = -bl.vy;
+        bl.x = px; bl.y = py; bl.bounces = (bl.bounces | 0) + 1; bl.life += 25;
+        room.ev.push(["r", Math.round(px), Math.round(py)]);
+      } else if (!dead && pointInWall(bl.x, bl.y)) {
         if (bl.explode) explode(room, bl.x, bl.y, bl.radius, bl.splash, bl.owner, bl.w);
         else room.ev.push(["w", Math.round(bl.x - bl.vx * 0.5), Math.round(bl.y - bl.vy * 0.5)]);
         dead = true;
       }
       if (!dead) {
         for (const t of room.players.values()) {
-          if (!t.alive || t.id === bl.owner) continue;
+          if (!t.alive || (t.id === bl.owner && !bl.bounces)) continue; // po odrazu trefíš i sebe
           if (Math.hypot(bl.x - t.x, bl.y - t.y) < bl.r + BR) {
             if (bl.explode) explode(room, bl.x, bl.y, bl.radius, bl.dmg + bl.splash, bl.owner, bl.w);
             else damage(room, t, bl.dmg, bl.owner, bl.w);
@@ -451,6 +500,11 @@ function updateRoom(room) {
         }
       }
       if (dead) room.bullets.splice(i, 1);
+    }
+    // sudy s hořící rozbuškou bouchnou
+    for (const b of room.barrels.filter((b) => b.fuse > 0 && --b.fuse === 0)) {
+      room.barrels.splice(room.barrels.indexOf(b), 1);
+      explode(room, b.x, b.y, BARREL.radius, BARREL.dmg, b.owner, 5);
     }
     // miny
     for (let i = room.mines.length - 1; i >= 0; i--) {
@@ -609,7 +663,7 @@ wss.on("connection", (ws, req) => {
       if (room.phase !== "lobby") { p.alive = false; p.waiting = true; } // zápas běží: přidá se od dalšího kola
       send(ws, {
         t: "welcome", id: p.id, color: p.color, W, H, BR, SPEED, TURBO, walls: room.walls,
-        mapName: MAPS[room.mapIdx].name, mapIdx: room.mapIdx,
+        mapName: MAPS[room.mapIdx].name, mapIdx: room.mapIdx, feat: room.feat,
         weapons: IDX_WEAPON.map((k) => WEAPONS[k].name),
         maxRounds: room.rounds, room: room.code, host: room.hostId, max: MAX, face: p.face,
       });
@@ -687,7 +741,9 @@ setInterval(() => {
     const bs = room.bullets.map((b) => [Math.round(b.x), Math.round(b.y), +b.vx.toFixed(1), +b.vy.toFixed(1), b.r, b.color, b.w]);
     const pu = room.powerups.map((p) => [Math.round(p.x), Math.round(p.y), p.kind, p.id]);
     const mn = room.mines.map((m) => [Math.round(m.x), Math.round(m.y), m.owner, m.arm > 0 ? 0 : 1, m.id]);
+    const br = room.barrels.length ? room.barrels.map((b) => [b.id, b.x, b.y, Math.max(0, b.hp), b.fuse > 0 ? 1 : 0]) : undefined;
     const msg = { t: "s", k: room.tick, ph: room.phase, cd: room.countdown, ps, bs, pu, mn };
+    if (br) msg.br = br;
     if (room.phase === "play") msg.tl = Math.max(0, Math.ceil((ROUND_TICKS - room.playT) / 30));
     if (room.ev.length) { msg.ev = room.ev; room.ev = []; }
     broadcast(room, msg);

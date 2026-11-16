@@ -86,6 +86,7 @@ function recordMatch(rows) {
 
 function top(n = 50) {
   return Object.values(data.players)
+    .filter((p) => p.face)   // v žebříčku jen postavy s fotkou
     .sort((a, b) => b.wins - a.wins || b.kills - a.kills || b.hits - a.hits)
     .slice(0, n)
     .map((p) => ({ name: p.name, face: p.face, games: p.games, wins: p.wins, rounds: p.rounds, kills: p.kills, deaths: p.deaths, hits: p.hits }));
