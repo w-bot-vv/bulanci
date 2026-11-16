@@ -109,6 +109,27 @@
   .pick span{max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .linkBtn{background:none;border:none;color:var(--muted);text-decoration:underline;font-family:inherit;font-size:12.5px;cursor:pointer;padding:8px 0 0}
   .lrow .av{width:30px;height:30px;border-radius:50%;flex:0 0 auto;border:2px solid #fff;background:#2c3550}
+  .seg.wrap{flex-wrap:wrap}
+  .seg.wrap button{flex:1 1 30%;font-size:14px;padding:8px 4px}
+  .boardBtn{margin-top:10px}
+  /* žebříček */
+  #board{z-index:7;background:#0f131c}
+  .boardHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;align-items:end;max-width:620px;width:100%;margin:6px auto 0}
+  .pod{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:0}
+  .pod .face{position:relative;border-radius:50%;border:4px solid var(--c);background:var(--c);display:block}
+  .pod .face img,.pod .face span{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;object-fit:cover;font-family:"Baloo 2";font-weight:800;font-size:34px;color:#14131b}
+  .pod .crown{position:absolute;top:-30px;left:50%;transform:translateX(-50%);font-size:30px}
+  .pod .nm{font-weight:700;font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pod .st{font-size:12px;color:var(--muted)}
+  .pod .step{width:100%;border-radius:12px 12px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;
+    font-family:"Baloo 2";font-weight:800;font-size:34px;color:rgba(0,0,0,.45);background:linear-gradient(180deg,var(--c),rgba(255,255,255,.08))}
+  .btable{width:100%;max-width:720px;margin:14px auto 0;border-collapse:collapse;font-size:13.5px}
+  .btable th{color:var(--muted);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .btable th:nth-child(-n+2),.btable td:nth-child(-n+2){text-align:left}
+  .btable td{padding:6px 8px;border-bottom:1px solid #232a3d;text-align:right;font-variant-numeric:tabular-nums}
+  .btable .who{display:flex;align-items:center;gap:8px}
+  .btable img,.btable .ini{width:26px;height:26px;border-radius:50%;flex:0 0 auto;background:#2c3550;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
   #muteBtn{position:absolute;top:10px;right:10px;z-index:6;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
     background:rgba(13,16,24,.82);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 </style>
@@ -146,6 +167,7 @@
             <button id="joinBtn" class="btn ghost" type="button">Připojit</button>
           </div>
           <div id="status" class="status" role="status"></div>
+          <button id="boardBtn1" class="btn ghost small wide boardBtn" type="button">🏆 Žebříček všech her</button>
         </div>
       </div>
       <div class="foot">
@@ -172,7 +194,9 @@
         <div class="side">
           <div id="hostCtl" class="side">
             <button id="addBotBtn" class="btn ghost small" type="button">+ Přidat bota</button>
-            <div><div class="hint" style="margin-bottom:6px">Výher do konce zápasu</div><div class="seg" id="roundsSeg"></div></div>
+            <div><div class="hint" style="margin-bottom:6px">Mód hry</div><div class="seg wrap" id="modeSeg"></div></div>
+            <div><div class="hint" style="margin-bottom:6px">Kdo vyhraje zápas</div><div class="seg" id="scoreSeg"></div></div>
+            <div><div class="hint" style="margin-bottom:6px" id="roundsLbl">Výher do konce zápasu</div><div class="seg" id="roundsSeg"></div></div>
             <button id="startBtn" class="btn wide" type="button">▶ Spustit hru</button>
             <div class="hint" id="startHint"></div>
           </div>
@@ -184,9 +208,21 @@
             <div class="hint" style="margin-bottom:6px">Odkaz pro kamarády</div>
             <input id="linkIn" class="linkIn" readonly aria-label="Odkaz pro kamarády">
           </div>
+          <button id="boardBtn2" class="btn ghost small" type="button">🏆 Žebříček všech her</button>
           <button id="leaveBtn" class="btn ghost small" type="button">Odejít z lobby</button>
         </div>
       </div>
+    </div>
+
+    <!-- ŽEBŘÍČEK -->
+    <div id="board" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="boardTitle">
+      <div class="boardHead">
+        <h1 id="boardTitle" style="font-size:clamp(26px,4.6vw,40px)">Žebříček<small id="boardSub">Všechny dohrané zápasy · řazeno podle vyhraných zápasů</small></h1>
+        <button id="boardClose" class="btn ghost small" type="button">Zavřít</button>
+      </div>
+      <div id="podium" class="podium"></div>
+      <table class="btable"><thead><tr><th>#</th><th>Hráč</th><th>Zápasy</th><th>Výhry</th><th>Kola</th><th>Zabití</th><th>Zásahy</th><th>Smrti</th></tr></thead><tbody id="boardRows"></tbody></table>
+      <div class="hint" id="boardNote" style="text-align:center;margin-top:10px"></div>
     </div>
 
     <!-- MESSAGE -->
@@ -329,7 +365,8 @@ syncMute();
 /* ---------- síť ---------- */
 let ws=null, myId=null, myColor='#fff', walls=[], maxRounds=5;
 let connected=false, joinInfo=null, wantReconnect=false, reconnectT=null, inGame=false;
-let latency=0, roomCode='', hostId=0, lobbyRounds=5;
+let latency=0, roomCode='', hostId=0, lobbyRounds=5, lobbyMode='classic', lobbyScoring='wins', roundNo=0, roundMode='classic';
+const MODE_NAMES={classic:'Klasika',mg:'Jen samopal',shotgun:'Jen brokovnice',rocket:'Jen rakety',random:'Náhoda'};
 const statusEl=$('status');
 function serverURL(){ return (location.protocol==='https:'?'wss':'ws')+'://'+location.host; }
 function setStatus(txt,err){ statusEl.textContent=txt; statusEl.classList.toggle('err',!!err); }
@@ -387,19 +424,21 @@ function onMsg(m){
     renderLobby(); syncLobby(); break;
   case 'roster': {
     const before=roster.size;
-    roster=new Map(); for(const r of m.players) roster.set(r[0],{name:r[1],color:r[2],wins:r[3],kills:r[4],bot:r[5],face:r[6]||''});
+    roster=new Map(); for(const r of m.players) roster.set(r[0],{name:r[1],color:r[2],wins:r[3],kills:r[4],bot:r[5],face:r[6]||'',hits:r[7]|0});
+    lobbyMode=m.mode||'classic'; lobbyScoring=m.scoring||'wins'; roundNo=m.roundNo|0;
     if(roster.size>before&&before>0&&phase==='lobby') Snd.play('join');
     hostId=m.host; lobbyRounds=m.rounds; maxRounds=m.rounds; if(m.phase) phase=m.phase;
     renderLobby(); syncLobby(); break; }
   case 's': onState(m); break;
   case 'round':
     setTimeout(()=>{ roundWinner=m.winner; const w=roster.get(m.winner);
-      showMsg(w?w.name+' bere kolo!':'Remíza!', w?('Výhry '+w.wins+' / '+maxRounds):'Čas vypršel – kolo nikdo nevyhrál', false, 1700);
+      const sub=lobbyScoring==='hits'?('Kolo '+roundNo+' / '+maxRounds+' · body jsou za zásahy'):(w?('Výhry '+w.wins+' / '+maxRounds):'');
+      showMsg(w?w.name+' bere kolo!':'Remíza!', w?sub:'Čas vypršel – kolo nikdo nevyhrál', false, 1700);
       const pos=posOf(m.winner); if(pos) confetti(pos.x,pos.y,55);
       Snd.play(m.winner===myId?'win':'round'); },300);
     break;
   case 'match': setTimeout(()=>{ showMatch(m.champ,m.standings); confetti(W/2,H*.35,130); Snd.play('win'); },300); break;
-  case 'map': walls=m.walls; mapName=m.name||''; bakeMap(m.idx|0); predInit=false; predHist.length=0; resetRoundFx(); break;
+  case 'map': walls=m.walls; mapName=m.name||''; roundMode=m.mode||'classic'; bakeMap(m.idx|0); predInit=false; predHist.length=0; resetRoundFx(); break;
   case 'pong': { const r=Math.round(performance.now()-m.ts); latency=latency?Math.round(latency*.7+r*.3):r; break; }
   case 'busy': fail('Server je teď plný (moc rozehraných her). Zkus to za chvíli.'); break;
   case 'full': fail('Tahle hra je plná (20 hráčů).'); break;
@@ -448,9 +487,9 @@ const isField=t=>t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA');
 addEventListener('keydown',e=>{
   if(isField(e.target)) return;                      // psaní jména / kódu nechá hra na pokoji
   Snd.init();
-  if(e.code==='Escape'){ e.preventDefault(); if(quitOpen()) closeQuit(); else askQuit(); return; }
+  if(e.code==='Escape'){ e.preventDefault(); if(boardOpen()) closeBoard(); else if(quitOpen()) closeQuit(); else askQuit(); return; }
   if(e.code==='KeyM'&&!e.repeat){ Snd.setMuted(!Snd.isMuted()); syncMute(); return; }
-  const playing=inGame&&phase!=='lobby';
+  const playing=inGame&&phase!=='lobby'&&!boardOpen();
   if(!playing) return;                               // v lobby/menu fungují tlačítka normálně
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(e.code)) e.preventDefault();
   if(quitOpen()&&(e.code==='Enter'||e.code==='Space')) return; // ať palba omylem nepotvrdí dialog
@@ -557,6 +596,13 @@ function leaveToMenu(){
 const segEl=$('roundsSeg');
 for(const n of [2,3,5,7]){ const b=document.createElement('button'); b.type='button'; b.textContent=n; b.dataset.n=n;
   b.onclick=()=>{ send({t:'rounds',n}); b.blur(); }; segEl.append(b); }
+const modeEl=$('modeSeg'), scoreEl=$('scoreSeg');
+for(const [v,l] of [['classic','Klasika'],['mg','Jen samopal'],['shotgun','Jen brokovnice'],['rocket','Jen rakety'],['random','Náhoda']]){
+  const b=document.createElement('button'); b.type='button'; b.textContent=l; b.dataset.v=v; b.title=v==='random'?'Každé kolo jiný mód':'';
+  b.onclick=()=>{ send({t:'mode',v}); b.blur(); }; modeEl.append(b); }
+for(const [v,l] of [['wins','Nejvíc vyhraných kol'],['hits','Nejvíc zásahů']]){
+  const b=document.createElement('button'); b.type='button'; b.textContent=l; b.dataset.v=v; b.style.fontSize='14px';
+  b.onclick=()=>{ send({t:'scoring',v}); b.blur(); }; scoreEl.append(b); }
 $('addBotBtn').onclick=()=>{ send({t:'addbot'}); $('addBotBtn').blur(); };
 $('startBtn').onclick=()=>{ Snd.init(); send({t:'start'}); $('startBtn').blur(); };
 $('leaveBtn').onclick=()=>leaveToMenu();
@@ -571,6 +617,7 @@ $('copyBtn').onclick=async()=>{
 };
 function syncLobby(){
   const show=inGame&&connected&&phase==='lobby';
+  if(!show&&boardOpen()&&inGame&&phase!=='lobby') closeBoard();
   $('lobby').classList.toggle('hidden',!show);
   if(show&&quitOpen()) closeQuit();
 }
@@ -608,14 +655,57 @@ function renderLobby(){
     list.append(row);
   }
   for(const b of segEl.children) b.classList.toggle('on',+b.dataset.n===lobbyRounds);
+  for(const b of modeEl.children) b.classList.toggle('on',b.dataset.v===lobbyMode);
+  for(const b of scoreEl.children) b.classList.toggle('on',b.dataset.v===lobbyScoring);
+  $('roundsLbl').textContent=lobbyScoring==='hits'?'Počet kol zápasu':'Výher do konce zápasu';
   const n=arr.length;
   $('addBotBtn').disabled=n>=20;
   $('startBtn').disabled=n<2;
   $('startHint').textContent=n<2
     ?'Potřebuješ aspoň 2 hráče – přidej bota nebo počkej na kamarády.'
     :'Hra začne pro všechny v lobby. Kdo se připojí později, naskočí od dalšího kola.';
-  $('guestTxt').textContent='Hru spustí '+(nameOf(hostId)||'hostitel')+'. Hraje se na '+lobbyRounds+' výher.';
+  $('guestTxt').textContent='Hru spustí '+(nameOf(hostId)||'hostitel')+'. Mód: '+MODE_NAMES[lobbyMode]+'. '+
+    (lobbyScoring==='hits'?'Hraje se '+lobbyRounds+' kol, vyhrává nejvíc zásahů.':'Hraje se na '+lobbyRounds+' výher.');
   $('lobbySub').textContent=isHost?'Pošli kamarádům kód nebo odkaz a spusť hru, až budete připravení.':'Jsi v lobby – hra začne, až ji hostitel spustí.';
+}
+
+/* ---------- žebříček (vždy aktuální: při otevření a pak každých 8 s) ---------- */
+const boardEl=$('board'); let boardTimer=null;
+const boardOpen=()=>!boardEl.classList.contains('hidden');
+function openBoard(){ boardEl.classList.remove('hidden'); loadBoard(); clearInterval(boardTimer); boardTimer=setInterval(loadBoard,8000); }
+function closeBoard(){ boardEl.classList.add('hidden'); clearInterval(boardTimer); if(document.activeElement) document.activeElement.blur(); }
+$('boardBtn1').onclick=openBoard; $('boardBtn2').onclick=openBoard; $('boardClose').onclick=closeBoard;
+const PODCOL=['#ffd13f','#cfd6e6','#e0965a'];
+function avatarEl(r,cls){
+  if(r.face){ const im=document.createElement('img'); im.src='faces/'+r.face+'.webp'; im.alt=''; if(cls) im.className=cls; return im; }
+  const s=document.createElement('span'); s.className=cls||''; s.textContent=(r.name||'?').trim().charAt(0).toUpperCase(); return s;
+}
+function statLine(r){ return r.wins+' '+(r.wins===1?'výhra':r.wins>=2&&r.wins<=4?'výhry':'výher')+' · '+r.kills+' zabití'; }
+async function loadBoard(){
+  let d; try{ d=await (await fetch('api/zebricek',{cache:'no-store'})).json(); }catch{ $('boardNote').textContent='Žebříček se nepodařilo načíst.'; return; }
+  const rows=Array.isArray(d.rows)?d.rows:[];
+  const pod=$('podium'); pod.textContent='';
+  const order=[1,0,2];                       // bedna: 2. – 1. – 3.
+  for(const i of order){ const r=rows[i];
+    const el=document.createElement('div'); el.className='pod'; el.style.setProperty('--c',PODCOL[i]);
+    if(r){ const sz=i===0?112:86;
+      const f=document.createElement('div'); f.className='face'; f.style.width=f.style.height=sz+'px'; f.append(avatarEl(r));
+      if(i===0){ const cr=document.createElement('div'); cr.className='crown'; cr.textContent='👑'; f.append(cr); }
+      const nm=document.createElement('div'); nm.className='nm'; nm.textContent=r.name;
+      const st=document.createElement('div'); st.className='st'; st.textContent=statLine(r);
+      el.append(f,nm,st); }
+    const step=document.createElement('div'); step.className='step'; step.style.height=[96,68,48][i]+'px'; step.textContent=String(i+1);
+    el.append(step); pod.append(el); }
+  const tb=$('boardRows'); tb.textContent='';
+  rows.forEach((r,i)=>{ const tr=document.createElement('tr');
+    const td=(t)=>{ const x=document.createElement('td'); x.textContent=t; tr.append(x); return x; };
+    td(String(i+1));
+    const who=document.createElement('td'); const w=document.createElement('div'); w.className='who'; w.append(avatarEl(r,r.face?'':'ini'));
+    const n=document.createElement('span'); n.textContent=r.name; w.append(n); who.append(w); tr.append(who);
+    td(String(r.games)); td(String(r.wins)); td(String(r.rounds)); td(String(r.kills)); td(String(r.hits)); td(String(r.deaths));
+    tb.append(tr); });
+  $('boardNote').textContent=!rows.length?'Zatím žádný dohraný zápas. Žebříček se plní po každém dokončeném zápasu (boti se nepočítají).':
+    (d.persistent?'Počítají se dohrané zápasy (boti ne). Uloženo natrvalo.':'Pozor: žebříček je zatím uložený jen dočasně a po restartu serveru zmizí.');
 }
 
 /* ---------- potvrzení odchodu ---------- */
@@ -644,8 +734,8 @@ function showMatch(champId,st){
   st.forEach((s,i)=>{ const row=document.createElement('div'); row.className='standrow';
     const chip=document.createElement('span'); chip.className='chip'; chip.style.background=String(s[2]);
     const nm=document.createElement('span'); nm.textContent=(i+1)+'. '+s[1];
-    const k=document.createElement('span'); k.className='kills'; k.textContent='💥 '+s[4]+' zabití';
-    const sc=document.createElement('span'); sc.className='score'; sc.textContent='🏆 '+s[3];
+    const k=document.createElement('span'); k.className='kills'; k.textContent='💥 '+s[4]+' zabití · 🎯 '+(s[5]|0)+' zásahů';
+    const sc=document.createElement('span'); sc.className='score'; sc.textContent=lobbyScoring==='hits'?'🎯 '+(s[5]|0):'🏆 '+s[3];
     row.append(chip,nm,k,sc); el.appendChild(row); });
   msgEl.classList.add('solid'); msgEl.classList.remove('hidden');
   clearTimeout(msgTimer); msgTimer=setTimeout(()=>msgEl.classList.add('hidden'),7600);
@@ -867,7 +957,7 @@ function render(now,dt){
       if(id===myId){ x=pred.x; y=pred.y; ang=myAngle; al=predAlive?1:0; s={h:predHp,w:myWeapon,am:myAmmo,fl:myFlags,ft:myFxT}; }
       else { x=lerp(pa.x,pb.x,f); y=lerp(pa.y,pb.y,f); ang=lerpAngle(pa.a,pb.a,f); }
       if(!al) continue;
-      drawnPos.set(id,{x,y,a:ang});
+      drawnPos.set(id,{x,y,a:ang,t:now});
       drawBulanek(id,x,y,ang,colorOf(id),s,nameOf(id),id===myId,now);
     }
   }
@@ -1111,7 +1201,9 @@ function drawCountdown(now,cam){
   ctx.fillStyle=countdown>0?'#fff':'#ffd13f'; ctx.fillText(txt,0,0); ctx.restore();
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round'; ctx.strokeStyle='rgba(10,12,18,.85)';
   if(mapName){ ctx.font='700 22px Fredoka,sans-serif'; ctx.lineWidth=5; ctx.strokeText('Mapa: '+mapName,W/2,y0+54); ctx.fillStyle='#ffd13f'; ctx.fillText('Mapa: '+mapName,W/2,y0+54); }
-  ctx.font='600 15px Fredoka,sans-serif'; ctx.lineWidth=4; ctx.strokeText('Sbírej bedny: zbraně, štít, turbo, lékárny',W/2,y0+82); ctx.fillStyle='#cfd6e6'; ctx.fillText('Sbírej bedny: zbraně, štít, turbo, lékárny',W/2,y0+82);
+  const hint=roundMode==='classic'?'Sbírej bedny: zbraně, štít, turbo, lékárny':'MÓD KOLA: '+MODE_NAMES[roundMode].toUpperCase()+' · všichni mají stejnou zbraň s nekonečnou municí';
+  ctx.font=roundMode==='classic'?'600 15px Fredoka,sans-serif':'800 18px "Baloo 2",sans-serif'; ctx.lineWidth=4; ctx.strokeText(hint,W/2,y0+84);
+  ctx.fillStyle=roundMode==='classic'?'#cfd6e6':'#ff9a3c'; ctx.fillText(hint,W/2,y0+84);
   ctx.textBaseline='alphabetic';
 }
 /* úvod kola: přiblížení na vlastní postavu, pak oddálení na celou mapu */
@@ -1196,8 +1288,9 @@ function drawKillToast(now){
 }
 function drawHUD(now){
   if(!inGame||phase==='lobby') return;
-  const arr=[...roster.values()].sort((a,b)=>b.wins-a.wins||b.kills-a.kills).slice(0,7);
-  const top=arr.length&&arr[0].wins>0?arr[0]:null;
+  const byHits=lobbyScoring==='hits';
+  const arr=[...roster.values()].sort((a,b)=>byHits?b.hits-a.hits||b.kills-a.kills:b.wins-a.wins||b.kills-a.kills).slice(0,7);
+  const top=arr.length&&(byHits?arr[0].hits:arr[0].wins)>0?arr[0]:null;
   let x=10; ctx.textAlign='left'; ctx.textBaseline='middle';
   for(const p of arr){
     ctx.fillStyle='rgba(13,16,24,.78)'; rr(x,8,120,30,8); ctx.fill();
@@ -1206,7 +1299,7 @@ function drawHUD(now){
     if(p===top){ ctx.fillStyle='#ffd13f'; ctx.beginPath(); ctx.moveTo(x+8,14); ctx.lineTo(x+10,8); ctx.lineTo(x+13,12); ctx.lineTo(x+15,6); ctx.lineTo(x+17,12); ctx.lineTo(x+20,8); ctx.lineTo(x+22,14); ctx.closePath(); ctx.fill(); }
     ctx.fillStyle='#fff'; ctx.font='700 12px "Baloo 2",sans-serif';
     const sn=p.name.length>9&&p.name.includes(' ')?p.name.split(' ')[0]+' '+p.name.split(' ')[1][0]+'.':p.name.slice(0,10);
-    ctx.fillText(sn+' ×'+p.wins,x+27,23);
+    ctx.fillText(sn+(byHits?' 🎯'+p.hits:' ×'+p.wins),x+27,23);
     x+=126; if(x>W-176) break;
   }
   if(phase==='play'&&timeLeft>=0&&timeLeft<=15){ // poslední vteřiny kola
@@ -1224,31 +1317,40 @@ function drawHUD(now){
   ctx.fillText((latency?latency+' ms · ':'')+'M = zvuk · Esc = odchod',W-10,H-10); ctx.textAlign='left';
   drawWeaponPanel(now);
 }
+let panelAlpha=1;
 function drawWeaponPanel(now){
   if(!(predInit&&predAlive&&(phase==='play'||phase==='count'))) return;
-  const w=myWeapon|0, col=WCOL[w], wd=214, ht=52;
-  const x=usedTouch?W/2-wd/2:12, y=H-ht-12;
+  const w=myWeapon|0, col=WCOL[w], wd=184, ht=44;
+  const x=usedTouch?W/2-wd/2:8, y=H-ht-8;
   const pt=now-V(myId).pickT, pop=pt<400?1+.12*Math.exp(-pt/90):1;
-  ctx.save(); ctx.translate(x+wd/2,y+ht/2); ctx.scale(pop,pop); ctx.translate(-wd/2,-ht/2);
+  // kdo/co je pod panelem → zprůhlednit, ať nepřekáží ve výhledu
+  let under=false; const m=60;
+  for(const q of drawnPos.values()) if(q.t>now-250&&q.x>x-m&&q.x<x+wd+m+(myFlags?210:0)&&q.y>y-m) { under=true; break; }
+  const s0=snaps[snaps.length-1];
+  if(!under&&s0){ for(const c of s0.pu) if(c[0]<x+wd+m&&c[1]>y-m){ under=true; break; } }
+  panelAlpha+=((under?.22:1)-panelAlpha)*.2;
+  ctx.save(); ctx.globalAlpha=panelAlpha; ctx.translate(x+wd/2,y+ht/2); ctx.scale(pop,pop); ctx.translate(-wd/2,-ht/2);
   if(w>0) drawGlow(26,ht/2,40,col,.35);
   ctx.fillStyle='rgba(13,16,24,.84)'; rr(0,0,wd,ht,12); ctx.fill();
   ctx.strokeStyle=w>0?col:'rgba(255,255,255,.15)'; ctx.lineWidth=2; ctx.stroke();
-  drawIcon(WKEY[w],28,ht/2,1.5,col);
+  drawIcon(WKEY[w],24,ht/2,1.3,col);
   ctx.textAlign='left'; ctx.textBaseline='middle';
-  ctx.fillStyle='#fff'; ctx.font='800 17px "Baloo 2",sans-serif'; ctx.fillText(WNAME[w].toUpperCase(),56,17);
-  ctx.font='600 13px Fredoka,sans-serif'; ctx.fillStyle='#aab3c8';
-  if(myAmmo<0) ctx.fillText('∞ nábojů',56,36);
-  else { ctx.fillText(myAmmo+' / '+AMMO_MAX[w],56,36);
-    ctx.fillStyle='rgba(255,255,255,.12)'; rr(118,32,84,7,3.5); ctx.fill();
-    ctx.fillStyle=col; rr(118,32,Math.max(4,84*Math.min(1,myAmmo/AMMO_MAX[w])),7,3.5); ctx.fill(); }
+  ctx.fillStyle='#fff'; ctx.font='800 15px "Baloo 2",sans-serif'; ctx.fillText(WNAME[w].toUpperCase(),48,15);
+  ctx.font='600 12px Fredoka,sans-serif'; ctx.fillStyle='#aab3c8';
+  if(myAmmo<0) ctx.fillText('∞ nábojů',48,31);
+  else { ctx.fillText(myAmmo+' / '+AMMO_MAX[w],48,31);
+    ctx.fillStyle='rgba(255,255,255,.12)'; rr(104,28,68,6,3); ctx.fill();
+    ctx.fillStyle=col; rr(104,28,Math.max(4,68*Math.min(1,myAmmo/AMMO_MAX[w])),6,3); ctx.fill(); }
   ctx.restore();
-  let bx=x+wd+8; const secs=Math.ceil(myFxT/TICKRATE);
+  let bx=x+wd+6; const secs=Math.ceil(myFxT/TICKRATE);
+  ctx.save(); ctx.globalAlpha=panelAlpha;
   for(const [bit,kind,lbl] of [[1,'shield','ŠTÍT'],[2,'turbo','TURBO']]){
     if(!(myFlags&bit)) continue; const c=PICK[kind].col;
-    ctx.fillStyle='rgba(13,16,24,.84)'; rr(bx,y+8,96,36,10); ctx.fill(); ctx.strokeStyle=c; ctx.lineWidth=2; ctx.stroke();
-    drawIcon(kind,bx+18,y+26,1,c);
+    ctx.fillStyle='rgba(13,16,24,.84)'; rr(bx,y+6,96,32,10); ctx.fill(); ctx.strokeStyle=c; ctx.lineWidth=2; ctx.stroke();
+    drawIcon(kind,bx+18,y+22,1,c);
     ctx.fillStyle='#fff'; ctx.font='800 14px "Baloo 2",sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
-    ctx.fillText(lbl+' '+secs+' s',bx+32,y+27); bx+=104; }
+    ctx.fillText(lbl+' '+secs+' s',bx+32,y+23); bx+=102; }
+  ctx.restore();
   ctx.textBaseline='alphabetic';
 }
 function drawFeed(now){

@@ -14,6 +14,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const WebSocket = require("ws");
+const store = require("./store");
 
 const PORT = process.env.PORT || 3000;
 const ROUNDS_TO_WIN = parseInt(process.env.ROUNDS || "2", 10); // výchozí počet výher do konce zápasu (hostitel může změnit)
@@ -54,6 +55,10 @@ const SECURITY_HEADERS = {
 const server = http.createServer((req, res) => {
   if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405, { Allow: "GET, HEAD" }); return res.end(); }
   let url = (req.url || "/").split("?")[0];
+  if (url === "/api/zebricek") { // žebříček – vždy aktuální stav z paměti serveru
+    res.writeHead(200, { ...SECURITY_HEADERS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    return res.end(req.method === "HEAD" ? undefined : JSON.stringify({ ...store.status(), rows: store.top(50) }));
+  }
   if (url === "/") url = "/index.html";
   const f = STATIC.get(url);
   if (!f) { res.writeHead(404, SECURITY_HEADERS); return res.end("not found"); }
@@ -139,6 +144,9 @@ const WEAPON_IDX = { pistol: 0, mg: 1, shotgun: 2, rocket: 3, mines: 4 };
 const IDX_WEAPON = ["pistol", "mg", "shotgun", "rocket", "mines"];
 // bonusy z beden (zbraně + vylepšení); váhy = jak často padají
 const DROPS = ["mg", "mg", "shotgun", "shotgun", "rocket", "mines", "health", "health", "shield", "turbo"];
+// módy hry: classic = bedny se zbraněmi; ostatní = všichni mají jednu zbraň s nekonečnou municí
+const MODES = ["classic", "mg", "shotgun", "rocket", "random"];
+const SCORINGS = ["wins", "hits"];   // vítěz zápasu podle výher kol, nebo podle počtu zásahů
 const SHIELD_TICKS = 180, TURBO_TICKS = 210, TURBO = 1.5;            // 6 s štít, 7 s turbo (×1,5 rychlost)
 const MINE = { arm: 30, life: 900, trigger: 30, radius: 88, dmg: 80, max: 24, perPlayer: 3 };
 const MAX_PICKUPS = 6;
@@ -202,6 +210,7 @@ function createRoom() {
     powerupTimer: 180, nid: 0, tick: 0, spawns: [], roundWinner: -1,
     mapIdx: -1, mapQueue: null, walls: MAPS[0].walls,
     mines: [], ev: [], puId: 0, mineId: 0, botNames: 0,
+    mode: "classic", roundMode: "classic", scoring: "wins", roundNo: 0,
   };
   nextMap(r);
   rooms.set(code, r);
@@ -235,7 +244,7 @@ function makePlayer(room, ws, name, prefColor, bot, face) {
     id, ws: ws || null, bot: !!bot, name, face: face || "", colorIdx: ci, color: COLORS[ci],
     x: 0, y: 0, vx: 0, vy: 0, angle: -Math.PI / 2,
     hp: 100, maxHp: 100, alive: false, waiting: false,
-    weapon: "pistol", ammo: Infinity, cd: 0, wins: 0, kills: 0, shield: 0, turbo: 0,
+    weapon: "pistol", ammo: Infinity, cd: 0, wins: 0, kills: 0, hits: 0, deaths: 0, shield: 0, turbo: 0,
     in: { ax: 0, ay: 0, fire: false },
     ai: { aim: 0, agg: 0.55 + Math.random() * 0.4, strafe: Math.random() < 0.5 ? 1 : -1, timer: 0, side: Math.random() < 0.5 ? 1 : -1, stuckT: 0, sx: 0, sy: 0 },
   };
@@ -254,13 +263,18 @@ function addBot(room) {
 /* ============================ SIMULACE ============================ */
 function startRound(room) {
   nextMap(room);
-  broadcast(room, { t: "map", walls: room.walls, name: MAPS[room.mapIdx].name, idx: room.mapIdx, count: MAPS.length });
+  if (room.mode === "random") {
+    const opts = ["classic", "mg", "shotgun", "rocket"].filter((m) => m !== room.roundMode);
+    room.roundMode = opts[Math.floor(Math.random() * opts.length)];
+  } else room.roundMode = room.mode;
+  const wpn = room.roundMode === "classic" ? "pistol" : room.roundMode;
+  broadcast(room, { t: "map", walls: room.walls, name: MAPS[room.mapIdx].name, idx: room.mapIdx, count: MAPS.length, mode: room.roundMode });
   const list = [...room.players.values()];
   list.forEach((p, i) => {
     const sp = room.spawns[i % room.spawns.length] || { x: W / 2, y: H / 2 };
     p.x = sp.x; p.y = sp.y; p.vx = 0; p.vy = 0;
     p.hp = p.maxHp; p.alive = true; p.waiting = false;
-    p.weapon = "pistol"; p.ammo = Infinity; p.cd = 0; p.shield = 0; p.turbo = 0;
+    p.weapon = wpn; p.ammo = Infinity; p.cd = 0; p.shield = 0; p.turbo = 0;
     p.angle = Math.atan2(H / 2 - p.y, W / 2 - p.x);
   });
   room.bullets = []; room.powerups = []; room.mines = []; room.ev = []; room.powerupTimer = 90;
@@ -305,8 +319,10 @@ function damage(room, t, amount, ownerId, wIdx) {
   if (t.shield > 0) { room.ev.push(["b", t.id]); return; } // štít všechno odrazí
   t.hp -= amount;
   room.ev.push(["h", t.id, Math.max(1, Math.round(amount)), ownerId]);
+  const shooter = room.players.get(ownerId);
+  if (shooter && shooter.id !== t.id) shooter.hits++;   // body za zásah soupeře
   if (t.hp <= 0) {
-    t.alive = false;
+    t.alive = false; t.deaths++;
     const k = room.players.get(ownerId);
     if (k && k.id !== t.id) k.kills++;
     room.ev.push(["k", ownerId, t.id, wIdx | 0]);
@@ -469,7 +485,8 @@ function updateRoom(room) {
 }
 
 function spawnPowerup(room) {
-  const kind = DROPS[Math.floor(Math.random() * DROPS.length)];
+  const pool = room.roundMode === "classic" ? DROPS : ["health", "health", "shield", "turbo"]; // v módu jedné zbraně jen bonusy
+  const kind = pool[Math.floor(Math.random() * pool.length)];
   for (let t = 0; t < 30; t++) {
     const x = 70 + Math.random() * (W - 140), y = 70 + Math.random() * (H - 140);
     if (hitsWall(x, y, 26)) continue;
@@ -482,10 +499,18 @@ function spawnPowerup(room) {
 function endRound(room, winner) {
   if (winner) winner.wins++;
   room.roundWinner = winner ? winner.id : -1;
-  const champ = [...room.players.values()].find((p) => p.wins >= room.rounds);
+  room.roundNo++;
+  const all = [...room.players.values()];
+  let champ = null;
+  if (room.scoring === "hits") { // zápas = pevný počet kol, vyhrává nejvíc zásahů
+    if (room.roundNo >= room.rounds) champ = all.slice().sort((a, b) => b.hits - a.hits || b.kills - a.kills || b.wins - a.wins)[0];
+  } else champ = all.find((p) => p.wins >= room.rounds);
   broadcastRoster(room);
   if (champ) {
     room.phase = "matchover"; room.overTimer = 8 * 30;
+    store.recordMatch(all.filter((p) => !p.bot).map((p) => ({
+      key: p.face ? "f:" + p.face : "n:" + p.name.toLowerCase(), name: p.face ? FACES.get(p.face).name : p.name, face: p.face,
+      win: p === champ, rounds: p.wins, kills: p.kills, deaths: p.deaths, hits: p.hits })));
     broadcast(room, { t: "match", champ: champ.id, standings: standings(room) });
   } else {
     room.phase = "roundover"; room.overTimer = 3 * 30;
@@ -494,8 +519,8 @@ function endRound(room, winner) {
 }
 function standings(room) {
   return [...room.players.values()]
-    .sort((a, b) => b.wins - a.wins || b.kills - a.kills)
-    .map((p) => [p.id, p.name, p.color, p.wins, p.kills]);
+    .sort((a, b) => room.scoring === "hits" ? b.hits - a.hits || b.kills - a.kills : b.wins - a.wins || b.kills - a.kills)
+    .map((p) => [p.id, p.name, p.color, p.wins, p.kills, p.hits, p.face]);
 }
 
 /* ============================ SÍŤ ============================ */
@@ -544,8 +569,9 @@ function broadcast(room, obj) {
     if (p.ws && p.ws.readyState === WebSocket.OPEN) p.ws.send(s);
 }
 function broadcastRoster(room) {
-  const players = [...room.players.values()].map((p) => [p.id, p.name, p.color, p.wins, p.kills, p.bot ? 1 : 0, p.face]);
-  broadcast(room, { t: "roster", players, host: room.hostId, code: room.code, rounds: room.rounds, phase: room.phase });
+  const players = [...room.players.values()].map((p) => [p.id, p.name, p.color, p.wins, p.kills, p.bot ? 1 : 0, p.face, p.hits]);
+  broadcast(room, { t: "roster", players, host: room.hostId, code: room.code, rounds: room.rounds, phase: room.phase,
+    mode: room.mode, scoring: room.scoring, roundNo: room.roundNo });
 }
 function hostOf(ws) { // akce smí dělat jen hostitel své místnosti
   const p = ws.player, room = ws.room;
@@ -591,7 +617,8 @@ wss.on("connection", (ws, req) => {
     } else if (m.t === "start") {
       const room = hostOf(ws);
       if (!room || room.phase !== "lobby" || room.players.size < 2) return;
-      for (const p of room.players.values()) { p.wins = 0; p.kills = 0; }
+      for (const p of room.players.values()) { p.wins = 0; p.kills = 0; p.hits = 0; p.deaths = 0; }
+      room.roundNo = 0; room.roundMode = "";
       startRound(room);
     } else if (m.t === "addbot") {
       const room = hostOf(ws);
@@ -604,6 +631,12 @@ wss.on("connection", (ws, req) => {
       if (!t) return;
       if (t.bot) { room.players.delete(t.id); broadcastRoster(room); }
       else if (t.ws) { send(t.ws, { t: "kicked" }); removePlayer(t.ws); t.ws.close(4001, "kicked"); }
+    } else if (m.t === "mode" || m.t === "scoring") {
+      const room = hostOf(ws);
+      if (!room || room.phase !== "lobby") return;
+      if (m.t === "mode" && MODES.includes(m.v)) room.mode = m.v;
+      if (m.t === "scoring" && SCORINGS.includes(m.v)) room.scoring = m.v;
+      broadcastRoster(room);
     } else if (m.t === "rounds") {
       const room = hostOf(ws);
       if (!room || room.phase !== "lobby" || !ROUND_CHOICES.includes(m.n)) return;

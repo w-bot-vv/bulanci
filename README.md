@@ -16,6 +16,10 @@ deploy** a všichni se připojí na jednu adresu.
 3. V **lobby** hostitel vidí, kdo se připojil, může **přidat / odebrat boty**,
    **vyhodit hráče** (potvrzuje se druhým kliknutím) a zvolit **počet výher do
    konce zápasu** (2 / 3 / 5 / 7, výchozí 2).
+   Dále volí **mód hry**: Klasika (zbraně z beden), Jen samopal, Jen brokovnice,
+   Jen rakety (všichni stejnou zbraň s nekonečnou municí, z beden jen bonusy), nebo
+   Náhoda (každé kolo jiný mód); a **kdo vyhraje zápas**: nejvíc vyhraných kol,
+   nebo nejvíc zásahů soupeřů (pak se hraje pevný počet kol).
 4. Hra začne, **až ji hostitel spustí**. Kdo přijde během zápasu, naskočí od
    dalšího kola. Po konci zápasu se všichni vrátí do lobby a čeká se zase na
    hostitele. Když hostitel odejde, hostitelem se stane další hráč.
@@ -35,6 +39,15 @@ gamepad funguje taky. Na telefonu: levá půlka = pohyb, pravá = palba.
 **M** = zvuk, **Esc** = odchod (s potvrzením).
 
 ---
+
+## Žebříček
+
+V menu i v lobby je tlačítko **🏆 Žebříček všech her**: bedna TOP 3 s fotkami a
+tabulka (zápasy, výhry, vyhraná kola, zabití, zásahy, smrti). Počítají se jen
+dohrané zápasy a jen lidé (boti ne). Žebříček je vždy aktuální (server ho drží v
+paměti) a zálohuje se do souboru `zebricek.json` ve větvi **`zebricek`** tohoto
+repozitáře. K tomu je na Renderu potřeba proměnná `GITHUB_TOKEN` (viz níže);
+bez ní se žebříček po restartu serveru vymaže.
 
 ## Spuštění na svém počítači
 
@@ -64,6 +77,9 @@ Během hraní neusne, protože aktivitu drží WebSocket zprávy.
 | `PORT`          | 3000 | Port serveru (hosting nastaví sám). |
 | `ROUNDS`        | 2    | Výchozí počet výher do konce zápasu (hostitel ho v lobby může změnit). |
 | `ROUND_SECONDS` | 90   | Nejdelší délka jednoho kola; pak remíza. |
+| `GITHUB_TOKEN`  | –    | Fine-grained token jen pro tento repozitář s právem *Contents: Read and write* – ukládání žebříčku. |
+| `GITHUB_REPO`   | w-bot-vv/bulanci | Repozitář pro žebříček. |
+| `GITHUB_BRANCH` | zebricek | Větev pro žebříček (vytvoří se sama). |
 
 ## Bezpečnost
 
@@ -83,6 +99,7 @@ Během hraní neusne, protože aktivitu drží WebSocket zprávy.
 
 ```
 ├── server.js          # herní server (HTTP + WebSocket + simulace, lobby, boti)
+├── store.js           # žebříček (paměť + záloha do GitHubu)
 ├── package.json
 ├── render.yaml        # nasazení na Render (Blueprint)
 └── public/

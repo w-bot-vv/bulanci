@@ -9,3 +9,5 @@ services:
     envVars:
       - key: ROUNDS
         value: "2"
+      - key: GITHUB_TOKEN
+        sync: false   # tajný – vyplní se ručně v nastavení služby na Renderu
