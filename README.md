@@ -35,17 +35,13 @@ nevyhraje, je remíza.
 odrážejí od stěn – po odrazu trefíš i sebe) a **Výpadek proudu** (tma, vidíš jen
 kolem sebe, světlo dávají výstřely, výbuchy a občasné blesky).
 
-**Hudba:** vlastní skladby generované syntezátorem v prohlížeči (žádné nahrávky):
-klidná v menu a lobby, ve hře každé kolo jiný styl (synthwave, chiptune, drum & bass,
-industrial); v posledních vteřinách a ve finále 1 na 1 přitvrdí. **H** = hudba zap/vyp.
-
 **Bedny:** samopal, brokovnice, raketomet, miny (pokládají se za sebe), lékárna,
 štít (6 s nezranitelnost) a turbo (7 s rychlost ×1,5). Kdo sebere zbraň, má kolem
 sebe barevnou auru, zbraň je vidět v ruce a pod životy má ukazatel munice.
 
 **Ovládání:** WASD nebo šipky = pohyb a míření, mezerník nebo Enter = palba,
 gamepad funguje taky. Na telefonu: levá půlka = pohyb, pravá = palba.
-**M** = zvuk, **H** = hudba, **Esc** = odchod (s potvrzením).
+**M** = zvuk, **Esc** = odchod (s potvrzením).
 
 ---
 

@@ -130,8 +130,7 @@
   .btable td{padding:6px 8px;border-bottom:1px solid #232a3d;text-align:right;font-variant-numeric:tabular-nums}
   .btable .who{display:flex;align-items:center;gap:8px}
   .btable img,.btable .ini{width:26px;height:26px;border-radius:50%;flex:0 0 auto;background:#2c3550;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
-  #musicBtn{right:52px!important}
-  #muteBtn,#musicBtn{position:absolute;top:10px;right:10px;z-index:6;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+  #muteBtn{position:absolute;top:10px;right:10px;z-index:6;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
     background:rgba(13,16,24,.82);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 </style>
 </head>
@@ -173,7 +172,7 @@
       </div>
       <div class="foot">
         Hostitel založí hru a pošle kamarádům kód nebo odkaz. Hra začne, až ji spustí.<br>
-        Pohyb: <kbd>WASD</kbd> nebo šipky · Palba: <kbd>mezerník</kbd> nebo <kbd>Enter</kbd> · Gamepad funguje taky · Zvuk: <kbd>M</kbd> · Hudba: <kbd>H</kbd><br>
+        Pohyb: <kbd>WASD</kbd> nebo šipky · Palba: <kbd>mezerník</kbd> nebo <kbd>Enter</kbd> · Gamepad funguje taky · Zvuk: <kbd>M</kbd><br>
         Bedny: samopal, brokovnice, raketomet, miny, lékárna, štít, turbo. Na mobilu: levá půlka = pohyb, pravá = palba.
       </div>
     </div>
@@ -253,7 +252,6 @@
       <div><p class="big">↻</p><p class="sub">Otoč telefon na šířku.</p></div>
     </div>
 
-    <button id="musicBtn" type="button"></button>
     <button id="muteBtn" type="button"></button>
   </div>
 </div>
@@ -361,86 +359,11 @@ const Snd=(()=>{
     if(o&&o.x!=null){ const L=listener(); const d=Math.hypot(o.x-L.x,o.y-L.y); v*=Math.max(.15,1-d/1100); pan=(o.x-L.x)/(W*.7); }
     try{ S[name](v,pan); }catch{} }
   function setMuted(m){ muted=m; try{ localStorage.setItem('bulanci-zvuk',m?'0':'1'); }catch{} if(out) out.gain.value=m?0:.5; }
-  /* ---------- hudba: generuje ji syntezátor přímo v prohlížeči (vlastní skladby, žádné nahrávky) ---------- */
-  let mOut=null, mDelay=null, musicOn=true, track=null, trackName='', wanted='lobby', pending=null, mStep=0, mNext=0, mTimer=null, intensity=0;
-  try{ musicOn=localStorage.getItem('bulanci-hudba')!=='0'; }catch{}
-  const mf=m=>440*Math.pow(2,(m-69)/12), CH=q=>q==='m'?[0,3,7]:[0,4,7];
-  function menv(g,t,a,v,d){ g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(Math.max(.0002,v),t+a); g.gain.exponentialRampToValueAtTime(.0001,t+d); }
-  function mInit(){ if(mOut||!ac) return; mOut=ac.createGain(); mOut.gain.value=musicOn?.45:0; mOut.connect(out);
-    mDelay=ac.createDelay(1.5); const fb=ac.createGain(), wet=ac.createGain(); fb.gain.value=.33; wet.gain.value=.25;
-    mDelay.connect(fb); fb.connect(mDelay); mDelay.connect(wet); wet.connect(mOut); }
-  function kick(t,v=1){ const o=ac.createOscillator(),g=ac.createGain(); o.frequency.setValueAtTime(165,t); o.frequency.exponentialRampToValueAtTime(42,t+.13); menv(g,t,.002,.9*v,.33); o.connect(g); g.connect(mOut); o.start(t); o.stop(t+.36); }
-  function nz(t,v,type,f,q,d,send){ const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain(); s.buffer=nbuf; fl.type=type; fl.frequency.value=f; fl.Q.value=q;
-    menv(g,t,.001,v,d); s.connect(fl); fl.connect(g); g.connect(mOut); if(send) g.connect(mDelay); s.start(t,Math.random()*.5); s.stop(t+d+.02); }
-  const snare=(t,v=1)=>{ nz(t,.45*v,'bandpass',1900,.8,.17); syn(t,57,.09,{type:'triangle',v:.25*v,cut:3000,q:1}); };
-  const clap=(t,v=1)=>{ for(let i=0;i<3;i++) nz(t+i*.011,.28*v,'bandpass',1300,1.3,.09); };
-  const hat=(t,v=1,open)=>nz(t,.14*v,'highpass',7600,.7,open?.15:.035);
-  const metal=(t,v=1)=>{ nz(t,.25*v,'bandpass',3300,9,.22,true); syn(t,95,.08,{type:'square',v:.05*v,cut:6000,q:2}); };
-  function syn(t,m,d,{type='sawtooth',v=.2,cut=1800,q=4,a=.005,det=0,send=false}={}){
-    const g=ac.createGain(), fl=ac.createBiquadFilter(); fl.type='lowpass'; fl.Q.value=q;
-    fl.frequency.setValueAtTime(cut*1.8,t); fl.frequency.exponentialRampToValueAtTime(Math.max(80,cut*.45),t+d);
-    menv(g,t,a,v,d); fl.connect(g); g.connect(mOut); if(send) g.connect(mDelay);
-    for(const dt of det?[-det,det]:[0]){ const o=ac.createOscillator(); o.type=type; o.frequency.setValueAtTime(mf(m),t); o.detune.value=dt; o.connect(fl); o.start(t); o.stop(t+d+.05); } }
-  const pad=(t,notes,d,v=.05)=>{ for(const m of notes) syn(t,m,d,{v,cut:1000,q:1,a:Math.min(.35,d*.3),det:10}); };
-  function motif(seed,scale){ let s=seed; const r=()=>(s=(s*16807)%2147483647)/2147483647; const out=[];
-    for(let i=0;i<32;i++) out.push(r()<.32?-1:scale[Math.floor(r()*scale.length)]); return out; }
-  const TRACKS={
-    lobby:{bpm:92,prog:[[57,'m'],[53,'M'],[48,'M'],[52,'m']],play(s,bar,t,sec,I,sd){ const [r,q]=this.prog[bar%4],ch=CH(q);
-      if(s===0) { kick(t,.45); pad(t,ch.map(x=>r+x),sd*16,.035); } if(s===10) kick(t,.3); if(s===4||s===12) hat(t,.7,true);
-      if(s%2===0&&(sec||s%4===0)) syn(t,r+12+[0,ch[1],ch[2],12,ch[2],ch[1],7,ch[1]][(s/2)%8],sd*1.6,{type:'triangle',v:.06,cut:2600,q:1,send:true});
-      if(s===0||s===8) syn(t,r-12,sd*7,{v:.14,cut:380,q:2}); }},
-    turbo:{bpm:126,prog:[[57,'m'],[53,'M'],[48,'M'],[55,'M']],play(s,bar,t,sec,I,sd){ const [r,q]=this.prog[bar%4],ch=CH(q);
-      if(s%4===0) kick(t); if(s===4||s===12) clap(t);
-      if(s%4===2) hat(t,1,true); else if(sec||I) hat(t,.55);
-      syn(t,r-24+(s%2?12:0),sd*.9,{v:.2,cut:520+(I?700:0)+(sec?200:0),q:7});
-      if(s===0) pad(t,ch.map(x=>r+x),sd*16,.032);
-      if(sec||I){ const arp=[0,ch[1],ch[2],12,ch[2],ch[1],12,24]; syn(t,r+12+arp[s%8],sd*.9,{type:'square',v:.045,cut:2600,q:2,send:true}); }
-      if(I>1) snare(t,.35); }},
-    chip:{bpm:150,prog:[[52,'m'],[48,'M'],[50,'M'],[47,'M']],mel:motif(7,[64,67,69,71,74,76,79]),play(s,bar,t,sec,I,sd){ const [r,q]=this.prog[bar%4],ch=CH(q);
-      if(s===0||s===8||(sec&&s===6)) kick(t,.85); if(s===4||s===12) snare(t,.9); if(s%2===0) hat(t,.5); if(I&&s%2) hat(t,.35);
-      if(s%2===0) syn(t,r-12+(s%4?7:0),sd*1.6,{type:'square',v:.075,cut:1400,q:1});
-      const m=this.mel[(bar%2)*16+s]; if(sec&&m>0) syn(t,m+(bar%4>1?-2:0),sd*1.4,{type:'square',v:.055,cut:3800,q:1,send:true});
-      if(!sec&&s%4===0) syn(t,r+24+ch[(s/4)%3],sd*2,{type:'square',v:.04,cut:3000,q:1,send:true});
-      if(I>1) snare(t,.3); }},
-    dnb:{bpm:172,prog:[[50,'m'],[46,'M'],[53,'M'],[48,'M']],play(s,bar,t,sec,I,sd){ const [r,q]=this.prog[bar%4],ch=CH(q);
-      if(s===0||s===10) kick(t); if(s===4||s===12) snare(t); if(s===7||s===15) snare(t,.28); if(s%2===1) hat(t,.5); if(I&&s%2===0) hat(t,.3);
-      if(s===0||s===8) syn(t,r-24,sd*7.5,{v:.2,cut:320+(sec?380:0)+(I?500:0),q:9,det:16});
-      if(sec&&s===0) pad(t,ch.map(x=>r+12+x),sd*8,.04);
-      if(sec&&(s===3||s===6||s===11)) syn(t,r+24+ch[s%3],sd*1.2,{type:'square',v:.045,cut:3200,q:2,send:true});
-      if(I>1) snare(t,.3); }},
-    industrial:{bpm:104,prog:[[50,'m'],[50,'m'],[51,'M'],[50,'m']],play(s,bar,t,sec,I,sd){ const [r]=this.prog[bar%4];
-      if(s===0||s===3||s===8||s===11) kick(t,1.1); if(s===4||s===12){ snare(t,1.1); clap(t,.6); } if(s===6||s===14) metal(t,.8); if(I||sec) hat(t,.4);
-      const acc=[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0][s]; syn(t,(r-24)+(s===14?1:0),sd*.8,{v:acc?.22:.13,cut:acc?900:420,q:9});
-      if(sec&&(s===0||s===6)) syn(t,r+12,sd*3,{type:'square',v:.05,cut:1800,q:3,det:12,send:true});
-      if(I>1) snare(t,.35); }},
-  };
-  const GAME=['turbo','chip','dnb','industrial']; let gameIdx=Math.floor(Math.random()*4);
-  function mTick(){ if(!ac||!track||!mOut) return;
-    if(mNext<ac.currentTime-.2) mNext=ac.currentTime+.05;      // po probuzení záložky nedohánět
-    while(mNext<ac.currentTime+.15){ const sd=60/track.bpm/4, s=mStep%16, bar=Math.floor(mStep/16), sec=Math.floor(bar/8)%2;
-      try{ track.play(s,bar,mNext,sec,intensity,sd); }catch{}
-      mNext+=sd; mStep++;
-      if(s===15&&pending){ track=TRACKS[pending]; trackName=pending; pending=null; mStep=0; mDelay.delayTime.value=60/track.bpm*.75; } } }
-  function playTrack(name){ wanted=name; if(!ac) return; mInit();
-    if(trackName===name&&!pending) return;
-    if(!track){ track=TRACKS[name]; trackName=name; mStep=0; mNext=ac.currentTime+.08; mDelay.delayTime.value=60/track.bpm*.75; }
-    else pending=name;
-    if(!mTimer) mTimer=setInterval(mTick,40); }
-  function nextGame(){ gameIdx=(gameIdx+1)%GAME.length; playTrack(GAME[gameIdx]); }
-  function setMusic(on){ musicOn=on; try{ localStorage.setItem('bulanci-hudba',on?'1':'0'); }catch{} if(mOut) mOut.gain.setTargetAtTime(on?.45:0,ac.currentTime,.1); }
-  document.addEventListener('visibilitychange',()=>{ if(!mOut) return; mOut.gain.setTargetAtTime(document.hidden||!musicOn?0:.45,ac.currentTime,.05); });
-  const baseInit=init;
-  function init2(){ baseInit(); if(ac){ mInit(); playTrack(wanted); } }
-  return {init:init2,play,setMuted,isMuted:()=>muted,
-    music:{play:playTrack,next:nextGame,setIntensity:(i)=>{intensity=i;},toggle:()=>setMusic(!musicOn),isOn:()=>musicOn}};
+  return {init,play,setMuted,isMuted:()=>muted};
 })();
 const muteBtn=$('muteBtn');
 function syncMute(){ const m=Snd.isMuted(); muteBtn.textContent=m?'🔇':'🔊'; muteBtn.title=m?'Zapnout zvuk (M)':'Vypnout zvuk (M)'; muteBtn.setAttribute('aria-label',muteBtn.title); }
 muteBtn.onclick=()=>{ Snd.init(); Snd.setMuted(!Snd.isMuted()); syncMute(); muteBtn.blur(); };
-const musicBtn=$('musicBtn');
-function syncMusic(){ const on=Snd.music.isOn(); musicBtn.textContent='🎵'; musicBtn.style.opacity=on?1:.45; musicBtn.title=on?'Vypnout hudbu (H)':'Zapnout hudbu (H)'; musicBtn.setAttribute('aria-label',musicBtn.title); }
-musicBtn.onclick=()=>{ Snd.init(); Snd.music.toggle(); syncMusic(); musicBtn.blur(); };
-syncMusic();
 syncMute();
 
 /* ---------- síť ---------- */
@@ -519,7 +442,7 @@ function onMsg(m){
       Snd.play(m.winner===myId?'win':'round'); },300);
     break;
   case 'match': setTimeout(()=>{ showMatch(m.champ,m.standings); confetti(W/2,H*.35,130); Snd.play('win'); },300); break;
-  case 'map': walls=m.walls; mapName=m.name||''; roundMode=m.mode||'classic'; mapFeat=m.feat||{}; barrelsNow=[]; Snd.music.next(); bakeMap(m.idx|0); predInit=false; predHist.length=0; resetRoundFx(); break;
+  case 'map': walls=m.walls; mapName=m.name||''; roundMode=m.mode||'classic'; mapFeat=m.feat||{}; barrelsNow=[]; bakeMap(m.idx|0); predInit=false; predHist.length=0; resetRoundFx(); break;
   case 'pong': { const r=Math.round(performance.now()-m.ts); latency=latency?Math.round(latency*.7+r*.3):r; break; }
   case 'busy': fail('Server je teď plný (moc rozehraných her). Zkus to za chvíli.'); break;
   case 'full': fail('Tahle hra je plná (20 hráčů).'); break;
@@ -539,9 +462,6 @@ function onState(m){
   for(const t of m.ps) players[t[0]]={x:t[1],y:t[2],a:t[3],h:t[4],w:t[5],al:t[6],am:t[7],fl:t[8],ft:t[9]};
   snaps.push({at:now,players,bullets:m.bs||[],pu:m.pu||[],mn:m.mn||[],br:m.br||[]});
   barrelsNow=m.br||[]; lastK=m.k|0;
-  // hudba přitvrdí v posledních vteřinách a ve finále 1 na 1
-  const aliveN=m.ps.filter(t=>t[6]).length;
-  Snd.music.setIntensity(m.ph!=='play'?0:(m.tl!=null&&m.tl<=5)?2:((m.tl!=null&&m.tl<=15)||aliveN<=2)?1:0);
   if(snaps.length>40) snaps.shift();
   if(m.ph==='count'&&prevPhase!=='count'){ firstBlood=false; myKills.length=0; countStartT=now; killcam=null; }
   if(m.ph==='count'&&m.cd!==prevCd){ cdT=now; Snd.play(m.cd>0?'beep':'go'); }
@@ -574,7 +494,6 @@ addEventListener('keydown',e=>{
   Snd.init();
   if(e.code==='Escape'){ e.preventDefault(); if(boardOpen()) closeBoard(); else if(quitOpen()) closeQuit(); else askQuit(); return; }
   if(e.code==='KeyM'&&!e.repeat){ Snd.setMuted(!Snd.isMuted()); syncMute(); return; }
-  if(e.code==='KeyH'&&!e.repeat){ Snd.music.toggle(); syncMusic(); return; }
   const playing=inGame&&phase!=='lobby'&&!boardOpen();
   if(!playing) return;                               // v lobby/menu fungují tlačítka normálně
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(e.code)) e.preventDefault();
@@ -703,7 +622,6 @@ $('copyBtn').onclick=async()=>{
 };
 function syncLobby(){
   const show=inGame&&connected&&phase==='lobby';
-  if(show||!inGame) Snd.music.play('lobby');
   if(!show&&boardOpen()&&inGame&&phase!=='lobby') closeBoard();
   $('lobby').classList.toggle('hidden',!show);
   if(show&&quitOpen()) closeQuit();
@@ -1447,7 +1365,7 @@ function drawHUD(now){
   }
   ctx.textBaseline='alphabetic';
   ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='600 11px Fredoka,sans-serif'; ctx.textAlign='right';
-  ctx.fillText((latency?latency+' ms · ':'')+'M = zvuk · H = hudba · Esc = odchod',W-10,H-10); ctx.textAlign='left';
+  ctx.fillText((latency?latency+' ms · ':'')+'M = zvuk · Esc = odchod',W-10,H-10); ctx.textAlign='left';
   drawWeaponPanel(now);
 }
 let panelAlpha=1;
